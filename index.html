@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oahu Neighborhood Finder</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #0f172a;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-shrink: 0;
+    }
+    header h1 {
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+    header h1 span { color: #2dd4bf; }
+    .search-row {
+      display: flex;
+      gap: 8px;
+      flex: 1;
+      max-width: 560px;
+    }
+    #address-input {
+      flex: 1;
+      padding: 8px 14px;
+      border: 1.5px solid #334155;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #f1f5f9;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #address-input::placeholder { color: #64748b; }
+    #address-input:focus { border-color: #2dd4bf; }
+    #address-input:disabled { opacity: 0.5; cursor: not-allowed; }
+    #search-btn {
+      padding: 8px 18px;
+      background: #0d9488;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    #search-btn:hover { background: #0f766e; }
+    #search-btn:disabled { background: #334155; cursor: not-allowed; }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    #map {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Info panel ── */
+    #info-panel {
+      width: 300px;
+      flex-shrink: 0;
+      background: #fff;
+      border-left: 1px solid #e2e8f0;
+      overflow-y: auto;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .placeholder {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+    .loading-msg, .error-msg {
+      font-size: 0.875rem;
+      padding: 12px;
+      border-radius: 6px;
+    }
+    .loading-msg { background: #f0fdf4; color: #166534; }
+    .error-msg { background: #fef2f2; color: #991b1b; }
+
+    /* Result sections */
+    .result-section {
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 14px;
+    }
+    .result-section:last-child { border-bottom: none; padding-bottom: 0; }
+    .result-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .result-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1.3;
+    }
+    .result-sub {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      background: #fef9c3;
+      color: #854d0e;
+      border: 1px solid #fde047;
+      border-radius: 4px;
+      padding: 1px 6px;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* Demographics grid */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .demo-item {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+    .demo-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .demo-key {
+      font-size: 0.7rem;
+      color: #64748b;
+      margin-top: 1px;
+    }
+    .data-source {
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-top: 10px;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      main { flex-direction: column; }
+      #map { flex: none; height: 55vh; }
+      #info-panel { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
+      header { flex-direction: column; align-items: stretch; gap: 10px; }
+      .search-row { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Oahu <span>Neighborhood</span> Finder</h1>
+  <div class="search-row">
+    <input type="text" id="address-input" placeholder="Enter an address on Oahu..." disabled/>
+    <button id="search-btn" disabled>Search</button>
+  </div>
+</header>
+
+<main>
+  <div id="map"></div>
+  <div id="info-panel">
+    <div class="loading-msg">Loading neighborhood data...</div>
+  </div>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script>
+// ── Config ──────────────────────────────────────────────
+const MLS_READY = false; // flip to true when mls_neighborhoods.geojson is real
+
+// ── State ───────────────────────────────────────────────
+let boardsData = null;
+let microData  = null;
+let metaByBoardNum = {};
+let highlightMicro = null;
+let highlightBoard = null;
+let addressMarker  = null;
+let searching = false;
+let lastSearch = 0; // for Nominatim rate limiting
+
+// ── Map init ────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true }).setView([21.4389, -158.0001], 11);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+// ── Data loading ─────────────────────────────────────────
+async function loadData() {
+  try {
+    const [boards, micro, meta] = await Promise.all([
+      fetch('data/neighborhood_boards_simplified.geojson').then(r => r.json()),
+      fetch('data/neighborhoods_micro.geojson').then(r => r.json()),
+      fetch('data/neighborhood_metadata.json').then(r => r.json())
+    ]);
+
+    boardsData = boards;
+    microData  = micro;
+    meta.neighborhoods.forEach(n => { metaByBoardNum[n.board_num] = n; });
+
+    // Subtle background outlines for all micro-neighborhoods
+    L.geoJSON(microData, {
+      style: { color: '#94a3b8', weight: 0.5, fillOpacity: 0.04, fillColor: '#94a3b8' },
+      onEachFeature(feature, layer) {
+        layer.bindTooltip(feature.properties.neighborho, { sticky: true, className: 'nb-tooltip' });
+      }
+    }).addTo(map);
+
+    // Enable search
+    const input = document.getElementById('address-input');
+    const btn   = document.getElementById('search-btn');
+    input.disabled = false;
+    btn.disabled   = false;
+    input.focus();
+
+    showPlaceholder();
+  } catch (err) {
+    showPanel(`<div class="error-msg">Failed to load neighborhood data. Refresh to try again.</div>`);
+  }
+}
+
+// ── Geocoding ────────────────────────────────────────────
+async function geocode(address) {
+  // Oahu bounding box: west, south, east, north
+  const bbox = '-158.3,21.2,-157.6,21.8';
+  const url  = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=us&viewbox=${bbox}&bounded=1&limit=1&addressdetails=1`;
+
+  const res  = await fetch(url, { headers: { 'Accept-Language': 'en-US' } });
+  const data = await res.json();
+  if (!data.length) return null;
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+}
+
+// ── Point-in-polygon ─────────────────────────────────────
+function findFeature(geojson, lat, lng) {
+  const pt = turf.point([lng, lat]);
+  for (const f of geojson.features) {
+    try {
+      if (turf.booleanPointInPolygon(pt, f)) return f;
+    } catch (_) {}
+  }
+  return null;
+}
+
+// ── Search ───────────────────────────────────────────────
+async function doSearch() {
+  if (searching || !microData) return;
+
+  const address = document.getElementById('address-input').value.trim();
+  if (!address) return;
+
+  // Nominatim rate-limit: 1 req/sec
+  const now = Date.now();
+  const wait = 1000 - (now - lastSearch);
+  if (wait > 0) await delay(wait);
+
+  searching = true;
+  document.getElementById('search-btn').textContent = '...';
+  showPanel(`<div class="loading-msg">Looking up address…</div>`);
+
+  try {
+    lastSearch = Date.now();
+    const coords = await geocode(address);
+
+    if (!coords) {
+      showPanel(`<div class="error-msg">No results. Try a full street address on Oahu.</div>`);
+      return;
+    }
+
+    const { lat, lng } = coords;
+    const microMatch = findFeature(microData,  lat, lng);
+    const boardMatch = findFeature(boardsData, lat, lng);
+
+    if (!microMatch && !boardMatch) {
+      showPanel(`<div class="error-msg">Address found but is outside known neighborhood boundaries.</div>`);
+      placeMarker(lat, lng);
+      return;
+    }
+
+    clearHighlights();
+
+    // Highlight board sub-district (behind, dashed)
+    if (boardMatch) {
+      highlightBoard = L.geoJSON(boardMatch, {
+        style: { color: '#1d4ed8', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.12, dashArray: '6 4' }
+      }).addTo(map);
+    }
+
+    // Highlight micro-neighborhood (front, solid)
+    if (microMatch) {
+      highlightMicro = L.geoJSON(microMatch, {
+        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.3 }
+      }).addTo(map);
+    }
+
+    placeMarker(lat, lng);
+
+    const fitLayer = highlightMicro || highlightBoard;
+    if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
+
+    const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+    showResults(microMatch, boardMatch, meta);
+
+  } catch (err) {
+    showPanel(`<div class="error-msg">Try again in a moment.</div>`);
+  } finally {
+    searching = false;
+    document.getElementById('search-btn').textContent = 'Search';
+  }
+}
+
+// ── Render results ───────────────────────────────────────
+function showResults(micro, board, meta) {
+  const microName  = micro ? micro.properties.neighborho : '—';
+  const region     = micro ? micro.properties.region      : '—';
+  const boardName  = board ? board.properties.towns        : '—';
+  const subdistrict = board ? board.properties.sd_desc     : '—';
+  const boardNum   = board ? board.properties.board_num    : '—';
+
+  let html = `
+    <div class="result-section">
+      <div class="result-label">Micro-Neighborhood</div>
+      <div class="result-value">${microName}</div>
+    </div>
+
+    <div class="result-section">
+      <div class="result-label">MLS Region</div>
+      <div class="result-value">
+        ${region}
+        ${!MLS_READY ? '<span class="badge">MLS polygons coming soon</span>' : ''}
+      </div>
+    </div>
+
+    <div class="result-section">
+      <div class="result-label">Neighborhood Board #${boardNum}</div>
+      <div class="result-value">${boardName}</div>
+      <div class="result-sub">${subdistrict}</div>
+    </div>
+  `;
+
+  if (meta) {
+    html += `
+      <div class="result-section">
+        <div class="result-label">Demographics</div>
+        <div class="demo-grid">
+          <div class="demo-item">
+            <div class="demo-val">${meta.population.toLocaleString()}</div>
+            <div class="demo-key">Population</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">$${(meta.median_household_income / 1000).toFixed(0)}k</div>
+            <div class="demo-key">Median HH Income</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${meta.housing_units.toLocaleString()}</div>
+            <div class="demo-key">Housing Units</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${Math.round(meta.owner_occupancy_rate * 100)}%</div>
+            <div class="demo-key">Owner Occupied</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${meta.avg_household_size}</div>
+            <div class="demo-key">Avg HH Size</div>
+          </div>
+        </div>
+        <div class="data-source">DPP / ACS 2019–2023 · Board-level estimates</div>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#14b8a6;border:2px solid #0f766e;"></div>
+        Micro-neighborhood
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:#3b82f6;border:2px dashed #1d4ed8;opacity:0.5;"></div>
+        Neighborhood board sub-district
+      </div>
+    </div>
+  `;
+
+  showPanel(html);
+}
+
+// ── Helpers ──────────────────────────────────────────────
+function showPanel(html) {
+  document.getElementById('info-panel').innerHTML = html;
+}
+
+function showPlaceholder() {
+  showPanel(`<p class="placeholder">Enter a street address above to find its micro-neighborhood, MLS region, neighborhood board, and demographic profile.</p>`);
+}
+
+function clearHighlights() {
+  if (highlightMicro) { map.removeLayer(highlightMicro); highlightMicro = null; }
+  if (highlightBoard) { map.removeLayer(highlightBoard); highlightBoard = null; }
+  if (addressMarker)  { map.removeLayer(addressMarker);  addressMarker  = null; }
+}
+
+function placeMarker(lat, lng) {
+  addressMarker = L.circleMarker([lat, lng], {
+    radius: 7, fillColor: '#f97316', color: '#fff', weight: 2, fillOpacity: 1
+  }).addTo(map);
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Event listeners ──────────────────────────────────────
+document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('address-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+// Tooltip style injection
+const style = document.createElement('style');
+style.textContent = '.nb-tooltip { background: #0f172a; color: #f1f5f9; border: none; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }';
+document.head.appendChild(style);
+
+// ── Boot ─────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
