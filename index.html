@@ -333,6 +333,8 @@ async function loadData() {
           `<strong>${feature.properties.towns}</strong><br>${feature.properties.sd_desc}`,
           { sticky: true, className: 'nb-tooltip' }
         );
+        layer.on('click', e => handleMapClick(e.latlng.lat, e.latlng.lng));
+        layer.on('mouseover', () => layer.getElement() && (layer.getElement().style.cursor = 'pointer'));
       }
     }).addTo(map);
 
@@ -341,6 +343,8 @@ async function loadData() {
       style: { color: '#0f766e', weight: 0.8, fillOpacity: 0.04, fillColor: '#14b8a6' },
       onEachFeature(feature, layer) {
         layer.bindTooltip(feature.properties.neighborho, { sticky: true, className: 'nb-tooltip' });
+        layer.on('click', e => handleMapClick(e.latlng.lat, e.latlng.lng));
+        layer.on('mouseover', () => layer.getElement() && (layer.getElement().style.cursor = 'pointer'));
       }
     }).addTo(map);
 
@@ -388,6 +392,34 @@ function findFeature(geojson, lat, lng) {
     } catch (_) {}
   }
   return null;
+}
+
+// ── Map click ────────────────────────────────────────────
+function handleMapClick(lat, lng) {
+  if (!microData || !boardsData) return;
+  clearHighlights();
+
+  const microMatch = findFeature(microData,  lat, lng);
+  const boardMatch = findFeature(boardsData, lat, lng);
+
+  if (!microMatch && !boardMatch) return;
+
+  const showBoards = document.getElementById('toggle-boards').checked;
+  const showMicro  = document.getElementById('toggle-micro').checked;
+
+  if (boardMatch && showBoards) {
+    highlightBoard = L.geoJSON(boardMatch, {
+      style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
+    }).addTo(map);
+  }
+  if (microMatch && showMicro) {
+    highlightMicro = L.geoJSON(microMatch, {
+      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
+    }).addTo(map);
+  }
+
+  const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+  showResults(microMatch, boardMatch, meta);
 }
 
 // ── Search ───────────────────────────────────────────────
@@ -490,29 +522,38 @@ function showResults(micro, board, meta) {
   `;
 
   if (meta) {
+    const renterPct = Math.round((1 - meta.owner_occupancy_rate) * 100);
     html += `
       <div class="result-section">
         <div class="result-label">Demographics</div>
         <div class="demo-grid">
           <div class="demo-item">
-            <div class="demo-val">${meta.population.toLocaleString()}</div>
-            <div class="demo-key">Population</div>
-          </div>
-          <div class="demo-item">
             <div class="demo-val">$${(meta.median_household_income / 1000).toFixed(0)}k</div>
             <div class="demo-key">Median HH Income</div>
-          </div>
-          <div class="demo-item">
-            <div class="demo-val">${meta.housing_units.toLocaleString()}</div>
-            <div class="demo-key">Housing Units</div>
           </div>
           <div class="demo-item">
             <div class="demo-val">${Math.round(meta.owner_occupancy_rate * 100)}%</div>
             <div class="demo-key">Owner Occupied</div>
           </div>
           <div class="demo-item">
+            <div class="demo-val">${renterPct}%</div>
+            <div class="demo-key">Renter Occupied</div>
+          </div>
+          <div class="demo-item">
             <div class="demo-val">${meta.avg_household_size}</div>
             <div class="demo-key">Avg HH Size</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${meta.housing_units.toLocaleString()}</div>
+            <div class="demo-key">Housing Units</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${meta.households.toLocaleString()}</div>
+            <div class="demo-key">Households</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${meta.population.toLocaleString()}</div>
+            <div class="demo-key">Population</div>
           </div>
         </div>
         <div class="data-source">DPP / ACS 2019–2023 · Board-level estimates</div>
