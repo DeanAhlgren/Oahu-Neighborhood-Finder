@@ -195,6 +195,56 @@
       flex-shrink: 0;
     }
 
+    /* ── Layer toggles ── */
+    .layer-toggles {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-label span {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .toggle-label input { display: none; }
+    .toggle-track {
+      width: 32px;
+      height: 18px;
+      border-radius: 9px;
+      background: #334155;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle-label input:checked + .toggle-track { background: var(--accent, #0d9488); }
+    .toggle-label input:checked + .toggle-track::after { transform: translateX(14px); background: #fff; }
+    .toggle-label input:checked ~ span { color: #e2e8f0; }
+    .toggle-divider {
+      width: 1px;
+      height: 20px;
+      background: #334155;
+    }
+
     /* Mobile */
     @media (max-width: 640px) {
       main { flex-direction: column; }
@@ -202,6 +252,7 @@
       #info-panel { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
       header { flex-direction: column; align-items: stretch; gap: 10px; }
       .search-row { max-width: none; }
+      .layer-toggles { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -212,6 +263,19 @@
   <div class="search-row">
     <input type="text" id="address-input" placeholder="Enter an address on Oahu..." disabled/>
     <button id="search-btn" disabled>Search</button>
+  </div>
+  <div class="toggle-divider"></div>
+  <div class="layer-toggles">
+    <label class="toggle-label" title="Show micro-neighborhood boundaries">
+      <input type="checkbox" id="toggle-micro" checked>
+      <div class="toggle-track" style="--accent:#0d9488"></div>
+      <span>Micro-neighborhoods</span>
+    </label>
+    <label class="toggle-label" title="Show neighborhood board boundaries">
+      <input type="checkbox" id="toggle-boards" checked>
+      <div class="toggle-track" style="--accent:#1d4ed8"></div>
+      <span>Neighborhood boards</span>
+    </label>
   </div>
 </header>
 
@@ -232,6 +296,8 @@ const MLS_READY = false; // flip to true when mls_neighborhoods.geojson is real
 let boardsData = null;
 let microData  = null;
 let metaByBoardNum = {};
+let bgMicroLayer   = null;  // all micro-neighborhood outlines
+let bgBoardLayer   = null;  // all board sub-district outlines
 let highlightMicro = null;
 let highlightBoard = null;
 let addressMarker  = null;
@@ -259,13 +325,34 @@ async function loadData() {
     microData  = micro;
     meta.neighborhoods.forEach(n => { metaByBoardNum[n.board_num] = n; });
 
-    // Subtle background outlines for all micro-neighborhoods
-    L.geoJSON(microData, {
-      style: { color: '#94a3b8', weight: 0.5, fillOpacity: 0.04, fillColor: '#94a3b8' },
+    // Background layer: board sub-districts (drawn first, underneath)
+    bgBoardLayer = L.geoJSON(boardsData, {
+      style: { color: '#1d4ed8', weight: 1, fillOpacity: 0, dashArray: '5 4' },
+      onEachFeature(feature, layer) {
+        layer.bindTooltip(
+          `<strong>${feature.properties.towns}</strong><br>${feature.properties.sd_desc}`,
+          { sticky: true, className: 'nb-tooltip' }
+        );
+      }
+    }).addTo(map);
+
+    // Background layer: micro-neighborhoods (drawn on top of boards)
+    bgMicroLayer = L.geoJSON(microData, {
+      style: { color: '#0f766e', weight: 0.8, fillOpacity: 0.04, fillColor: '#14b8a6' },
       onEachFeature(feature, layer) {
         layer.bindTooltip(feature.properties.neighborho, { sticky: true, className: 'nb-tooltip' });
       }
     }).addTo(map);
+
+    // Wire layer toggles
+    document.getElementById('toggle-micro').addEventListener('change', e => {
+      e.target.checked ? bgMicroLayer.addTo(map) : map.removeLayer(bgMicroLayer);
+      if (highlightMicro) e.target.checked ? highlightMicro.addTo(map) : map.removeLayer(highlightMicro);
+    });
+    document.getElementById('toggle-boards').addEventListener('change', e => {
+      e.target.checked ? bgBoardLayer.addTo(map) : map.removeLayer(bgBoardLayer);
+      if (highlightBoard) e.target.checked ? highlightBoard.addTo(map) : map.removeLayer(highlightBoard);
+    });
 
     // Enable search
     const input = document.getElementById('address-input');
@@ -340,17 +427,20 @@ async function doSearch() {
 
     clearHighlights();
 
-    // Highlight board sub-district (behind, dashed)
-    if (boardMatch) {
+    const showBoards = document.getElementById('toggle-boards').checked;
+    const showMicro  = document.getElementById('toggle-micro').checked;
+
+    // Highlight board sub-district (behind, dashed) — only if layer is on
+    if (boardMatch && showBoards) {
       highlightBoard = L.geoJSON(boardMatch, {
-        style: { color: '#1d4ed8', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.12, dashArray: '6 4' }
+        style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
       }).addTo(map);
     }
 
-    // Highlight micro-neighborhood (front, solid)
-    if (microMatch) {
+    // Highlight micro-neighborhood (front, solid) — only if layer is on
+    if (microMatch && showMicro) {
       highlightMicro = L.geoJSON(microMatch, {
-        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.3 }
+        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
       }).addTo(map);
     }
 
