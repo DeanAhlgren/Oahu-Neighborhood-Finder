@@ -39,6 +39,7 @@
       gap: 8px;
       flex: 1;
       max-width: 560px;
+      position: relative;
     }
     #address-input {
       flex: 1;
@@ -739,6 +740,130 @@
       font-weight: 600;
     }
 
+    /* ── Address Autocomplete ── */
+    .address-ac-list {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 70px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #1e293b;
+      border: 1.5px solid #2dd4bf;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .address-ac-list.open { display: block; }
+    .address-ac-item {
+      padding: 8px 14px;
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      cursor: pointer;
+      border-bottom: 1px solid #334155;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .address-ac-item:last-child { border-bottom: none; }
+    .address-ac-item:hover { background: #334155; }
+    .address-ac-item.active { background: #0d9488; color: #fff; }
+    .address-ac-empty {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #64748b;
+      font-style: italic;
+    }
+
+    /* ── Saved Properties ── */
+    .saved-props {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+    .saved-props-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .saved-props-header span {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .saved-props-header a {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .saved-props-header a:hover { color: #f87171; }
+    .saved-props-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .saved-prop-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 200px;
+      padding: 4px 8px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      color: #0f766e;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .saved-prop-chip:hover { background: #ccfbf1; }
+    .saved-prop-chip-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .saved-prop-chip-remove {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+      border: none;
+      background: none;
+      color: #94a3b8;
+      font-size: 0.7rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 14px;
+      border-radius: 50%;
+    }
+    .saved-prop-chip-remove:hover { color: #f87171; background: #fee2e2; }
+    .save-prop-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 10px;
+      padding: 6px 14px;
+      background: transparent;
+      border: 1.5px solid #0d9488;
+      border-radius: 6px;
+      color: #0d9488;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .save-prop-btn:hover { background: #f0fdfa; }
+    .save-prop-btn.saved {
+      border-color: #94a3b8;
+      color: #94a3b8;
+      cursor: default;
+      pointer-events: none;
+    }
+
     /* Mobile */
     @media (max-width: 640px) {
       main { flex-direction: column; }
@@ -757,8 +882,9 @@
 <header>
   <h1>Oahu <span>Neighborhood</span> Finder</h1>
   <div class="search-row">
-    <input type="text" id="address-input" placeholder="Enter an address on Oahu..." disabled/>
+    <input type="text" id="address-input" placeholder="Enter an address on Oahu..." disabled autocomplete="off" role="combobox" aria-expanded="false" aria-controls="address-ac-list" aria-autocomplete="list"/>
     <button id="search-btn" disabled>Search</button>
+    <div class="address-ac-list" id="address-ac-list" role="listbox"></div>
   </div>
   <div class="toggle-divider"></div>
   <div class="layer-toggles">
@@ -806,6 +932,9 @@ let addressMarker  = null;
 let searching = false;
 let lastSearch = 0; // for Nominatim rate limiting
 let neighborhoodIndex = []; // sorted { name, feature } for browse combo
+let acTimer   = null;  // autocomplete debounce timer
+let acIdx     = -1;    // active autocomplete index
+let acResults = [];    // current autocomplete results
 let nameLabelsLayer   = null; // permanent name labels on map
 let nameLabelMarkers  = [];  // { marker, minZoom } for zoom-dependent visibility
 
@@ -911,6 +1040,7 @@ async function loadData() {
     input.disabled = false;
     btn.disabled   = false;
     input.focus();
+    wireAddressAutocomplete();
 
     showPlaceholder();
   } catch (err) {
@@ -1049,7 +1179,7 @@ async function doSearch() {
     if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
 
     const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-    showResults(microMatch, boardMatch, meta);
+    showResults(microMatch, boardMatch, meta, address, lat, lng);
 
   } catch (err) {
     showPanel(`<div class="error-msg">Try again in a moment.</div>`);
@@ -1171,7 +1301,7 @@ function buildDataHTML(data) {
 }
 
 // ── Render results ───────────────────────────────────────
-function showResults(micro, board, meta) {
+function showResults(micro, board, meta, searchAddress, searchLat, searchLng) {
   const microName   = micro ? micro.properties.neighborho : '—';
   const region      = micro ? micro.properties.region     : '—';
   const boardName   = board ? board.properties.towns      : '—';
@@ -1182,11 +1312,22 @@ function showResults(micro, board, meta) {
   lastShownData = { micro, board, meta, microName, region, boardName, subdistrict, boardNum };
 
   // ── Data pane ──
-  let dataHTML = buildDataHTML({ microName, region, boardName, subdistrict, boardNum, meta });
+  let dataHTML = savedPropsHTML();
+  dataHTML += buildDataHTML({ microName, region, boardName, subdistrict, boardNum, meta });
 
   // Compare button (only when not already in compare mode)
   if (!compareMode) {
     dataHTML += `<button class="compare-btn" onclick="enterCompare()">Compare with another neighborhood</button>`;
+  }
+
+  // Save property button (only for address searches)
+  if (searchAddress && searchLat != null && searchLng != null) {
+    const alreadySaved = getSavedProperties().some(p => p.key === `${searchLat.toFixed(6)},${searchLng.toFixed(6)}`);
+    if (alreadySaved) {
+      dataHTML += `<button class="save-prop-btn saved">Saved</button>`;
+    } else {
+      dataHTML += `<button class="save-prop-btn" id="save-prop-btn">Save this property</button>`;
+    }
   }
 
 
@@ -1260,6 +1401,30 @@ function showResults(micro, board, meta) {
   showPanel(html);
   wireTabSwitching();
   if (chatAvailable) wireChatEvents();
+  wireSavedPropsEvents();
+
+  // Wire save button
+  const saveBtn = document.getElementById('save-prop-btn');
+  if (saveBtn && searchAddress && searchLat != null) {
+    saveBtn.addEventListener('click', () => {
+      const saved = saveProperty(searchAddress, searchLat, searchLng, { microName, boardName });
+      if (saved) {
+        saveBtn.textContent = 'Saved';
+        saveBtn.classList.add('saved');
+        saveBtn.id = '';
+        // Refresh the saved chips at top
+        const existing = document.querySelector('.saved-props');
+        const newChips = savedPropsHTML();
+        if (existing) {
+          existing.outerHTML = newChips;
+        } else {
+          const pane = document.getElementById('pane-data');
+          if (pane) pane.insertAdjacentHTML('afterbegin', newChips);
+        }
+        wireSavedPropsEvents();
+      }
+    });
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -1272,10 +1437,12 @@ function showPlaceholder() {
   if (welcomed) {
     showPanel(`
       <div class="panel-no-tabs">
+        ${savedPropsHTML()}
         <p class="placeholder">Search an address, click the map, or browse below.</p>
         ${browseComboHTML()}
       </div>
     `);
+    wireSavedPropsEvents();
   } else {
     showWelcome();
   }
@@ -1556,6 +1723,267 @@ function placeMarker(lat, lng) {
 }
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Address Autocomplete ─────────────────────────────────
+async function autocompleteSearch(query) {
+  const bbox = '-158.3,21.2,-157.6,21.8';
+  const url  = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&viewbox=${bbox}&bounded=1&limit=5&addressdetails=1`;
+  const res  = await fetch(url, { headers: { 'Accept-Language': 'en-US' } });
+  return res.json();
+}
+
+function wireAddressAutocomplete() {
+  const input = document.getElementById('address-input');
+  const list  = document.getElementById('address-ac-list');
+  if (!input || !list) return;
+
+  function renderAcList(results) {
+    if (!results.length) {
+      list.innerHTML = '<div class="address-ac-empty">No matches</div>';
+      list.classList.add('open');
+      input.setAttribute('aria-expanded', 'true');
+      acIdx = -1;
+      return;
+    }
+    list.innerHTML = results.map((r, i) =>
+      `<div class="address-ac-item" role="option" data-idx="${i}" title="${r.display_name}">${r.display_name}</div>`
+    ).join('');
+    list.classList.add('open');
+    input.setAttribute('aria-expanded', 'true');
+    acIdx = -1;
+  }
+
+  function closeAcList() {
+    list.classList.remove('open');
+    list.innerHTML = '';
+    input.setAttribute('aria-expanded', 'false');
+    acIdx = -1;
+    acResults = [];
+  }
+
+  function setAcActive(idx) {
+    list.querySelectorAll('.address-ac-item').forEach(el => el.classList.remove('active'));
+    acIdx = idx;
+    if (idx >= 0 && idx < acResults.length) {
+      const el = list.querySelector(`[data-idx="${idx}"]`);
+      if (el) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
+    }
+  }
+
+  function selectAcResult(result) {
+    input.value = result.display_name;
+    closeAcList();
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+
+    localStorage.setItem('onf-welcomed', '1');
+
+    const microMatch = findFeature(microData,  lat, lng);
+    const boardMatch = findFeature(boardsData, lat, lng);
+
+    if (!microMatch && !boardMatch) {
+      showPanel(`<div class="error-msg">Address found but is outside known neighborhood boundaries.</div>`);
+      clearHighlights();
+      placeMarker(lat, lng);
+      return;
+    }
+
+    if (compareMode && !compareActive) {
+      const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+      clearHighlights();
+      placeMarker(lat, lng);
+      completeCompare(microMatch, boardMatch, meta);
+      return;
+    }
+    if (compareActive) exitCompare();
+
+    clearHighlights();
+
+    const showBoards = document.getElementById('toggle-boards').checked;
+    const showMicro  = document.getElementById('toggle-micro').checked;
+
+    if (boardMatch && showBoards) {
+      highlightBoard = L.geoJSON(boardMatch, {
+        style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
+      }).addTo(map);
+    }
+    if (microMatch && showMicro) {
+      highlightMicro = L.geoJSON(microMatch, {
+        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
+      }).addTo(map);
+    }
+
+    placeMarker(lat, lng);
+
+    const fitLayer = highlightMicro || highlightBoard;
+    if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
+
+    const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+    showResults(microMatch, boardMatch, meta, result.display_name, lat, lng);
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(acTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { closeAcList(); return; }
+
+    acTimer = setTimeout(async () => {
+      const now = Date.now();
+      const wait = 1000 - (now - lastSearch);
+      if (wait > 0) await delay(wait);
+      lastSearch = Date.now();
+
+      try {
+        acResults = await autocompleteSearch(q);
+        renderAcList(acResults);
+      } catch (_) {
+        closeAcList();
+      }
+    }, 400);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (!list.classList.contains('open')) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (acIdx < acResults.length - 1) setAcActive(acIdx + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (acIdx > 0) setAcActive(acIdx - 1);
+    } else if (e.key === 'Enter' && acIdx >= 0) {
+      e.preventDefault();
+      selectAcResult(acResults[acIdx]);
+    } else if (e.key === 'Escape') {
+      closeAcList();
+    }
+  });
+
+  list.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const item = e.target.closest('.address-ac-item');
+    if (!item) return;
+    const idx = parseInt(item.dataset.idx);
+    if (idx >= 0 && idx < acResults.length) {
+      selectAcResult(acResults[idx]);
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(closeAcList, 150);
+  });
+}
+
+// ── Saved Properties (sessionStorage) ────────────────────
+function getSavedProperties() {
+  try { return JSON.parse(sessionStorage.getItem('onf-saved-properties')) || []; }
+  catch (_) { return []; }
+}
+
+function setSavedProperties(props) {
+  sessionStorage.setItem('onf-saved-properties', JSON.stringify(props));
+}
+
+function saveProperty(address, lat, lng, data) {
+  const props = getSavedProperties();
+  // Dedup by lat/lng (rounded to 6 decimals)
+  const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+  if (props.some(p => p.key === key)) return false;
+  props.push({ key, address, lat, lng, microName: data.microName, boardName: data.boardName, ts: Date.now() });
+  if (props.length > 10) props.shift(); // FIFO cap
+  setSavedProperties(props);
+  return true;
+}
+
+function removeSavedProperty(key) {
+  const props = getSavedProperties().filter(p => p.key !== key);
+  setSavedProperties(props);
+}
+
+function clearAllSavedProperties() {
+  sessionStorage.removeItem('onf-saved-properties');
+}
+
+function savedPropsHTML() {
+  const props = getSavedProperties();
+  if (!props.length) return '';
+  return `
+    <div class="saved-props">
+      <div class="saved-props-header">
+        <span>Saved Properties</span>
+        <a onclick="clearAllSavedProperties(); refreshSavedPropsUI()">Clear all</a>
+      </div>
+      <div class="saved-props-chips">
+        ${props.map(p => `
+          <div class="saved-prop-chip" data-key="${p.key}" data-lat="${p.lat}" data-lng="${p.lng}" title="${p.address}">
+            <span class="saved-prop-chip-label">${p.microName !== '—' ? p.microName : p.boardName}</span>
+            <button class="saved-prop-chip-remove" data-key="${p.key}">&times;</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function wireSavedPropsEvents() {
+  document.querySelectorAll('.saved-prop-chip').forEach(chip => {
+    chip.addEventListener('click', e => {
+      if (e.target.closest('.saved-prop-chip-remove')) return;
+      const lat = parseFloat(chip.dataset.lat);
+      const lng = parseFloat(chip.dataset.lng);
+      const microMatch = findFeature(microData,  lat, lng);
+      const boardMatch = findFeature(boardsData, lat, lng);
+      if (!microMatch && !boardMatch) return;
+
+      if (compareActive) exitCompare();
+      clearHighlights();
+
+      const showBoards = document.getElementById('toggle-boards').checked;
+      const showMicro  = document.getElementById('toggle-micro').checked;
+
+      if (boardMatch && showBoards) {
+        highlightBoard = L.geoJSON(boardMatch, {
+          style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
+        }).addTo(map);
+      }
+      if (microMatch && showMicro) {
+        highlightMicro = L.geoJSON(microMatch, {
+          style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
+        }).addTo(map);
+      }
+
+      placeMarker(lat, lng);
+      const fitLayer = highlightMicro || highlightBoard;
+      if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
+
+      // Find the saved property to get its address
+      const saved = getSavedProperties().find(p => p.key === chip.dataset.key);
+      const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+      showResults(microMatch, boardMatch, meta, saved ? saved.address : null, lat, lng);
+    });
+  });
+
+  document.querySelectorAll('.saved-prop-chip-remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      removeSavedProperty(btn.dataset.key);
+      refreshSavedPropsUI();
+    });
+  });
+}
+
+function refreshSavedPropsUI() {
+  // Re-render saved props sections wherever they appear
+  document.querySelectorAll('.saved-props').forEach(el => {
+    const newHTML = savedPropsHTML();
+    if (newHTML) {
+      el.outerHTML = newHTML;
+    } else {
+      el.remove();
+    }
+    wireSavedPropsEvents();
+  });
+}
 
 // ── Tab & chat functions ─────────────────────────────────
 function wireTabSwitching() {
@@ -2067,7 +2495,7 @@ function exitCompare() {
 // ── Event listeners ──────────────────────────────────────
 document.getElementById('search-btn').addEventListener('click', doSearch);
 document.getElementById('address-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doSearch();
+  if (e.key === 'Enter' && !e.defaultPrevented) doSearch();
 });
 
 // Tooltip style injection
