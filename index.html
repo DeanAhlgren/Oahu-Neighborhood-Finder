@@ -171,6 +171,39 @@
       margin-top: 10px;
     }
 
+    /* ── Market Snapshot ── */
+    .market-section { margin-top: 4px; }
+    .heat-gauge {
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #3b82f6, #eab308, #ef4444);
+      position: relative;
+      margin: 8px 0 6px;
+    }
+    .heat-marker {
+      position: absolute;
+      top: 50%;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2.5px solid #0f172a;
+      transform: translate(-50%, -50%);
+    }
+    .heat-row { display: flex; align-items: center; gap: 10px; }
+    .heat-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .heat-label.hot   { background: #fef2f2; color: #dc2626; }
+    .heat-label.warm  { background: #fff7ed; color: #ea580c; }
+    .heat-label.cool  { background: #eff6ff; color: #2563eb; }
+    .heat-label.cold  { background: #eff6ff; color: #1d4ed8; }
+    .trend-up   { color: #16a34a; }
+    .trend-down { color: #dc2626; }
+
     /* Legend */
     .legend {
       display: flex;
@@ -764,6 +797,7 @@ const MLS_READY = false; // flip to true when mls_neighborhoods.geojson is real
 let boardsData = null;
 let microData  = null;
 let metaByBoardNum = {};
+let marketData     = {};
 let bgMicroLayer   = null;  // all micro-neighborhood outlines
 let bgBoardLayer   = null;  // all board sub-district outlines
 let highlightMicro = null;
@@ -804,14 +838,16 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 // ── Data loading ─────────────────────────────────────────
 async function loadData() {
   try {
-    const [boards, micro, meta] = await Promise.all([
+    const [boards, micro, meta, mktRaw] = await Promise.all([
       fetch('data/neighborhood_boards_simplified.geojson').then(r => r.json()),
       fetch('data/neighborhoods_micro.geojson').then(r => r.json()),
-      fetch('data/neighborhood_metadata.json').then(r => r.json())
+      fetch('data/neighborhood_metadata.json').then(r => r.json()),
+      fetch('data/market_data.json').then(r => r.json()).catch(() => ({}))
     ]);
 
     boardsData = boards;
     microData  = micro;
+    marketData = mktRaw;
     meta.neighborhoods.forEach(n => { metaByBoardNum[n.board_num] = n; });
 
     // Background layer: board sub-districts (drawn first, underneath)
@@ -1084,6 +1120,53 @@ function buildDataHTML(data) {
       </div>
     `;
   }
+
+  // Market Snapshot (only when data exists for this region)
+  const mkt = region && region !== '—' ? marketData[region] : null;
+  if (mkt) {
+    const heatClass = mkt.heatIndex >= 70 ? 'hot' : mkt.heatIndex >= 45 ? 'warm' : mkt.heatIndex >= 25 ? 'cool' : 'cold';
+    const priceStr = mkt.medianSalePrice >= 1e6
+      ? `$${(mkt.medianSalePrice / 1e6).toFixed(2)}M`
+      : `$${(mkt.medianSalePrice / 1e3).toFixed(0)}k`;
+    const trendSign = mkt.priceTrendPct >= 0 ? '+' : '';
+    const trendClass = mkt.priceTrendPct >= 0 ? 'trend-up' : 'trend-down';
+
+    html += `
+      <div class="result-section market-section">
+        <div class="result-label">Market Snapshot</div>
+        <div class="heat-row">
+          <div class="heat-gauge" style="flex:1;">
+            <div class="heat-marker" style="left:${mkt.heatIndex}%"></div>
+          </div>
+          <span class="heat-label ${heatClass}">${mkt.heatLabel}</span>
+        </div>
+        <div class="demo-grid">
+          <div class="demo-item">
+            <div class="demo-val">${priceStr}</div>
+            <div class="demo-key">Median Sale Price</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${mkt.medianDaysOnMarket}</div>
+            <div class="demo-key">Days on Market</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${mkt.activeListings}</div>
+            <div class="demo-key">Active Listings</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val">${mkt.soldLast30}</div>
+            <div class="demo-key">Sold (30 days)</div>
+          </div>
+          <div class="demo-item">
+            <div class="demo-val ${trendClass}">${trendSign}${mkt.priceTrendPct}% YoY</div>
+            <div class="demo-key">Price Trend</div>
+          </div>
+        </div>
+        <div class="data-source">Sample data · MLS integration coming soon</div>
+      </div>
+    `;
+  }
+
   return html;
 }
 
@@ -1126,6 +1209,7 @@ function showResults(micro, board, meta) {
 
   if (chatAvailable) {
     chatMessages = [];
+    const mkt = region !== '—' ? marketData[region] : null;
     chatContext = {
       microName: microName !== '—' ? microName : null,
       region: region !== '—' ? region : null,
@@ -1139,6 +1223,14 @@ function showResults(micro, board, meta) {
         avgHouseholdSize: meta.avg_household_size,
         housingUnits: meta.housing_units,
         households: meta.households
+      } : null,
+      market: mkt ? {
+        medianSalePrice: mkt.medianSalePrice,
+        daysOnMarket: mkt.medianDaysOnMarket,
+        activeListings: mkt.activeListings,
+        soldLast30: mkt.soldLast30,
+        priceTrendPct: mkt.priceTrendPct,
+        heatLabel: mkt.heatLabel
       } : null
     };
 
@@ -1924,39 +2016,37 @@ function buildCompareTabHTML(a, b) {
 
 function buildDualChatContext(a, b) {
   const sameBoard = a.boardNum !== '—' && b.boardNum !== '—' && a.boardNum === b.boardNum;
+  function buildSide(n) {
+    const mkt = n.region !== '—' ? marketData[n.region] : null;
+    return {
+      microName: n.microName !== '—' ? n.microName : null,
+      region: n.region !== '—' ? n.region : null,
+      boardName: n.boardName !== '—' ? n.boardName : null,
+      subdistrict: n.subdistrict !== '—' ? n.subdistrict : null,
+      boardNum: n.boardNum !== '—' ? n.boardNum : null,
+      demographics: n.meta ? {
+        population: n.meta.population,
+        medianIncome: n.meta.median_household_income,
+        ownerOccupancy: n.meta.owner_occupancy_rate,
+        avgHouseholdSize: n.meta.avg_household_size,
+        housingUnits: n.meta.housing_units,
+        households: n.meta.households
+      } : null,
+      market: mkt ? {
+        medianSalePrice: mkt.medianSalePrice,
+        daysOnMarket: mkt.medianDaysOnMarket,
+        activeListings: mkt.activeListings,
+        soldLast30: mkt.soldLast30,
+        priceTrendPct: mkt.priceTrendPct,
+        heatLabel: mkt.heatLabel
+      } : null
+    };
+  }
   return {
     compareMode: true,
     sameBoard,
-    neighborhoodA: {
-      microName: a.microName !== '—' ? a.microName : null,
-      region: a.region !== '—' ? a.region : null,
-      boardName: a.boardName !== '—' ? a.boardName : null,
-      subdistrict: a.subdistrict !== '—' ? a.subdistrict : null,
-      boardNum: a.boardNum !== '—' ? a.boardNum : null,
-      demographics: a.meta ? {
-        population: a.meta.population,
-        medianIncome: a.meta.median_household_income,
-        ownerOccupancy: a.meta.owner_occupancy_rate,
-        avgHouseholdSize: a.meta.avg_household_size,
-        housingUnits: a.meta.housing_units,
-        households: a.meta.households
-      } : null
-    },
-    neighborhoodB: {
-      microName: b.microName !== '—' ? b.microName : null,
-      region: b.region !== '—' ? b.region : null,
-      boardName: b.boardName !== '—' ? b.boardName : null,
-      subdistrict: b.subdistrict !== '—' ? b.subdistrict : null,
-      boardNum: b.boardNum !== '—' ? b.boardNum : null,
-      demographics: b.meta ? {
-        population: b.meta.population,
-        medianIncome: b.meta.median_household_income,
-        ownerOccupancy: b.meta.owner_occupancy_rate,
-        avgHouseholdSize: b.meta.avg_household_size,
-        housingUnits: b.meta.housing_units,
-        households: b.meta.households
-      } : null
-    }
+    neighborhoodA: buildSide(a),
+    neighborhoodB: buildSide(b)
   };
 }
 

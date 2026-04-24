@@ -1,15 +1,12 @@
-require('dotenv').config();
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-app.use(express.json());
-app.use(express.static('.'));
-
-app.post('/api/chat', async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set in .env' });
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
   }
 
   const { messages, context } = req.body;
@@ -34,7 +31,6 @@ app.post('/api/chat', async (req, res) => {
   let system = '';
 
   if (context && context.compareMode) {
-    // Dual-context compare mode
     system = `You are a knowledgeable, friendly local guide for Oahu, Hawaii. The user is comparing two neighborhoods side by side and wants to understand how they differ. Be concise (2-4 short paragraphs). Be honest when you don't know something. Do not give specific real estate advice, property valuations, or investment recommendations. When answering, address both neighborhoods and highlight meaningful differences.`;
 
     const sides = [
@@ -67,7 +63,6 @@ app.post('/api/chat', async (req, res) => {
       system += `\n\nNote: Both neighborhoods are in the same Neighborhood Board area, so the demographic data above is identical (board-level estimates). Focus your comparisons on qualitative differences — vibe, walkability, proximity to amenities, commute patterns, and lifestyle factors rather than the demographic numbers.`;
     }
   } else {
-    // Single neighborhood mode
     system = `You are a knowledgeable, friendly local guide for Oahu, Hawaii. The user has selected a neighborhood and is asking questions about it. Be concise (2-4 short paragraphs). Be honest when you don't know something. Do not give specific real estate advice, property valuations, or investment recommendations. Anchor your answers to the selected neighborhood.`;
 
     if (context) {
@@ -91,7 +86,6 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  // Keep last 10 messages
   const trimmed = messages.slice(-10);
 
   try {
@@ -112,14 +106,12 @@ app.post('/api/chat', async (req, res) => {
     });
 
     if (!response.ok) {
-      const body = await response.text();
       const status = response.status;
       if (status === 401) return res.status(401).json({ error: 'Invalid API key' });
       if (status === 429) return res.status(429).json({ error: 'Rate limited — try again in a moment' });
       return res.status(status).json({ error: `API error (${status})` });
     }
 
-    // Stream SSE back to browser
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -141,8 +133,4 @@ app.post('/api/chat', async (req, res) => {
       res.end();
     }
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Neighborhood Finder running at http://localhost:${PORT}`);
-});
+};
