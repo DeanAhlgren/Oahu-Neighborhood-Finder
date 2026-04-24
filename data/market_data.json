@@ -8,5 +8,115 @@
     "soldLast30": 23,
     "priceTrendPct": 4.2,
     "lastUpdated": "2026-04-15"
+  },
+  "Metro": {
+    "heatIndex": 75,
+    "heatLabel": "Warm",
+    "medianSalePrice": 650000,
+    "medianDaysOnMarket": 22,
+    "activeListings": 185,
+    "soldLast30": 78,
+    "priceTrendPct": 3.1,
+    "lastUpdated": "2026-04-15"
+  },
+  "Central": {
+    "heatIndex": 68,
+    "heatLabel": "Warm",
+    "medianSalePrice": 875000,
+    "medianDaysOnMarket": 25,
+    "activeListings": 62,
+    "soldLast30": 31,
+    "priceTrendPct": 2.8,
+    "lastUpdated": "2026-04-15"
+  },
+  "Ewa Plains": {
+    "heatIndex": 72,
+    "heatLabel": "Warm",
+    "medianSalePrice": 785000,
+    "medianDaysOnMarket": 21,
+    "activeListings": 89,
+    "soldLast30": 42,
+    "priceTrendPct": 3.5,
+    "lastUpdated": "2026-04-15"
+  },
+  "Diamond Head": {
+    "heatIndex": 78,
+    "heatLabel": "Hot",
+    "medianSalePrice": 1150000,
+    "medianDaysOnMarket": 20,
+    "activeListings": 38,
+    "soldLast30": 19,
+    "priceTrendPct": 3.8,
+    "lastUpdated": "2026-04-15"
+  },
+  "Hawaii Kai": {
+    "heatIndex": 65,
+    "heatLabel": "Warm",
+    "medianSalePrice": 1075000,
+    "medianDaysOnMarket": 28,
+    "activeListings": 35,
+    "soldLast30": 14,
+    "priceTrendPct": 2.4,
+    "lastUpdated": "2026-04-15"
+  },
+  "Kaneohe": {
+    "heatIndex": 60,
+    "heatLabel": "Warm",
+    "medianSalePrice": 925000,
+    "medianDaysOnMarket": 30,
+    "activeListings": 41,
+    "soldLast30": 17,
+    "priceTrendPct": 1.9,
+    "lastUpdated": "2026-04-15"
+  },
+  "Pearl City": {
+    "heatIndex": 70,
+    "heatLabel": "Warm",
+    "medianSalePrice": 815000,
+    "medianDaysOnMarket": 23,
+    "activeListings": 54,
+    "soldLast30": 28,
+    "priceTrendPct": 3.0,
+    "lastUpdated": "2026-04-15"
+  },
+  "Waipahu": {
+    "heatIndex": 66,
+    "heatLabel": "Warm",
+    "medianSalePrice": 725000,
+    "medianDaysOnMarket": 26,
+    "activeListings": 48,
+    "soldLast30": 22,
+    "priceTrendPct": 2.6,
+    "lastUpdated": "2026-04-15"
+  },
+  "Makakilo": {
+    "heatIndex": 71,
+    "heatLabel": "Warm",
+    "medianSalePrice": 830000,
+    "medianDaysOnMarket": 22,
+    "activeListings": 29,
+    "soldLast30": 15,
+    "priceTrendPct": 3.3,
+    "lastUpdated": "2026-04-15"
+  },
+  "North Shore": {
+    "heatIndex": 55,
+    "heatLabel": "Warm",
+    "medianSalePrice": 1425000,
+    "medianDaysOnMarket": 38,
+    "activeListings": 32,
+    "soldLast30": 9,
+    "priceTrendPct": 1.5,
+    "lastUpdated": "2026-04-15"
+  },
+  "Leeward": {
+    "heatIndex": 42,
+    "heatLabel": "Cool",
+    "medianSalePrice": 535000,
+    "medianDaysOnMarket": 35,
+    "activeListings": 56,
+    "soldLast30": 18,
+    "priceTrendPct": 0.8,
+    "lastUpdated": "2026-04-15"
   }
 }

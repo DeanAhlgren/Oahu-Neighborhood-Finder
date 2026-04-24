@@ -1189,18 +1189,6 @@ function showResults(micro, board, meta) {
     dataHTML += `<button class="compare-btn" onclick="enterCompare()">Compare with another neighborhood</button>`;
   }
 
-  dataHTML += `
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-swatch" style="background:#14b8a6;border:2px solid #0f766e;"></div>
-        Micro-neighborhood
-      </div>
-      <div class="legend-item">
-        <div class="legend-swatch" style="background:#3b82f6;border:2px dashed #1d4ed8;opacity:0.5;"></div>
-        Neighborhood board sub-district
-      </div>
-    </div>
-  `;
 
   // ── Chat pane (only when served via HTTP) ──
   const chatAvailable = !isStaticHost;
@@ -1903,16 +1891,6 @@ function showComparePanel() {
     </div>
     <div class="tab-pane tab-pane-data" id="pane-data">
       ${bDataHTML}
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:#f59e0b;border:2px solid #b45309;"></div>
-          ${bName} (B)
-        </div>
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:#14b8a6;border:2px solid #0f766e;"></div>
-          ${aName} (A)
-        </div>
-      </div>
     </div>
     <div class="tab-pane tab-pane-compare active" id="pane-compare">
       ${compareTabHTML}
