@@ -406,6 +406,7 @@
     }
     .tab-pane-chat {
       padding: 0 12px 12px;
+      background: linear-gradient(180deg, #f0fdfa 0%, #f0f9ff 40%, #f8fafc 100%);
     }
 
     /* ── Chat context badge ── */
@@ -490,7 +491,9 @@
       display: flex;
       gap: 6px;
       flex-shrink: 0;
-      padding-top: 6px;
+      padding-bottom: 10px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
     }
     .chat-input-row input {
       flex: 1;
@@ -1146,14 +1149,14 @@ function showResults(micro, board, meta) {
           ${regionDisplay ? `<span class="chat-context-region">${regionDisplay}</span>` : ''}
         </div>
         <div class="chat-section">
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Ask a question..." autocomplete="off">
+            <button id="chat-send">Send</button>
+          </div>
           <div class="chat-messages" id="chat-messages">
             <div class="chat-msg assistant">
               <div class="chat-bubble assistant">Hi! Ask me anything about ${displayName} — schools, commute, vibe, things to do, you name it.</div>
             </div>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chat-input" placeholder="Ask a question..." autocomplete="off">
-            <button id="chat-send">Send</button>
           </div>
         </div>
       </div>
@@ -1741,14 +1744,14 @@ function showComparePanel() {
           <span class="chat-context-name">${bName}</span>
         </div>
         <div class="chat-section">
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Compare these neighborhoods..." autocomplete="off">
+            <button id="chat-send">Send</button>
+          </div>
           <div class="chat-messages" id="chat-messages">
             <div class="chat-msg assistant">
               <div class="chat-bubble assistant">Hi! I have data on both ${aName} and ${bName}. Ask me anything — lifestyle, schools, commute, cost of living — I'll compare them for you.</div>
             </div>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chat-input" placeholder="Compare these neighborhoods..." autocomplete="off">
-            <button id="chat-send">Send</button>
           </div>
         </div>
       </div>
