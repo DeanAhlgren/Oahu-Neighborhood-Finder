@@ -864,8 +864,9 @@ async function loadData() {
       }
     });
 
-    // Update label visibility on zoom changes
-    map.on('zoomend', updateLabelVisibility);
+    // Update label visibility and layer detail on zoom changes
+    map.on('zoomend', () => { updateLabelVisibility(); updateLayerDetail(); });
+    updateLayerDetail();
 
     // Enable search
     const input = document.getElementById('address-input');
@@ -1288,6 +1289,38 @@ function updateLabelVisibility() {
     const el = marker.getElement();
     if (el) {
       el.style.display = zoom >= minZoom ? '' : 'none';
+    }
+  }
+}
+
+function updateLayerDetail() {
+  const zoom = map.getZoom();
+
+  if (bgMicroLayer) {
+    if (zoom <= 10) {
+      // Island overview — hide micro boundaries entirely
+      bgMicroLayer.setStyle({ opacity: 0, fillOpacity: 0 });
+    } else if (zoom <= 11) {
+      // Large region — very faint outlines, no fill
+      bgMicroLayer.setStyle({ weight: 0.4, opacity: 0.25, fillOpacity: 0 });
+    } else if (zoom <= 12) {
+      // Region — thin lines emerging
+      bgMicroLayer.setStyle({ weight: 0.5, opacity: 0.5, fillOpacity: 0.02 });
+    } else {
+      // Neighborhood/street — full detail (original values)
+      bgMicroLayer.setStyle({ weight: 0.8, opacity: 1, fillOpacity: 0.04 });
+    }
+  }
+
+  if (bgBoardLayer) {
+    if (zoom <= 10) {
+      // Island overview — simplified boards
+      bgBoardLayer.setStyle({ weight: 0.7, opacity: 0.35, dashArray: '4 6' });
+    } else if (zoom <= 11) {
+      bgBoardLayer.setStyle({ weight: 0.8, opacity: 0.55, dashArray: '5 4' });
+    } else {
+      // Full detail (original values)
+      bgBoardLayer.setStyle({ weight: 1, opacity: 1, dashArray: '5 4' });
     }
   }
 }
