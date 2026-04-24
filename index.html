@@ -86,11 +86,10 @@
       flex-shrink: 0;
       background: #fff;
       border-left: 1px solid #e2e8f0;
-      overflow-y: auto;
-      padding: 20px 18px;
+      overflow: hidden;
+      padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 16px;
     }
     .placeholder {
       color: #94a3b8;
@@ -177,7 +176,6 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-top: auto;
       padding-top: 16px;
       border-top: 1px solid #f1f5f9;
     }
@@ -245,14 +243,476 @@
       background: #334155;
     }
 
+    /* ── Welcome card ── */
+    .welcome-card {
+      background: linear-gradient(135deg, #f0fdfa 0%, #f0f9ff 100%);
+      border: 1px solid #ccfbf1;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .welcome-card h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .welcome-card p {
+      font-size: 0.82rem;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .welcome-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 0;
+    }
+    .welcome-card li {
+      font-size: 0.8rem;
+      color: #475569;
+      line-height: 1.4;
+      padding-left: 18px;
+      position: relative;
+    }
+    .welcome-card li::before {
+      content: attr(data-icon);
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* ── Browse combo ── */
+    .browse-combo {
+      position: relative;
+      margin-top: 4px;
+    }
+    .browse-combo input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #1e293b;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .browse-combo input::placeholder { color: #94a3b8; }
+    .browse-combo input:focus { border-color: #14b8a6; }
+    .browse-list {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 232px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1.5px solid #14b8a6;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .browse-list.open { display: block; }
+    .browse-item {
+      padding: 8px 12px;
+      font-size: 0.83rem;
+      color: #1e293b;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .browse-item:last-child { border-bottom: none; }
+    .browse-item:hover { background: #f0fdfa; }
+    .browse-item.active { background: #ccfbf1; color: #0f766e; }
+    .browse-empty {
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    /* ── Name labels ── */
+    .nb-name-label {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 10px;
+      font-weight: 600;
+      color: #0f172a;
+      text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+      white-space: nowrap;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    /* ── Panel tabs ── */
+    .panel-tabs {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      flex-shrink: 0;
+      background: #f8fafc;
+    }
+    .panel-tab {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-align: center;
+      color: #64748b;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s;
+    }
+    .panel-tab:hover { color: #0f172a; }
+    .panel-tab.active { color: #0d9488; }
+    .panel-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #0d9488;
+    }
+    .chat-unread {
+      display: none;
+      width: 7px;
+      height: 7px;
+      background: #f97316;
+      border-radius: 50%;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+    .chat-unread.visible { display: inline-block; }
+
+    /* ── Tab panes ── */
+    .tab-pane {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+    }
+    .tab-pane.active { display: flex; }
+    .tab-pane-data {
+      overflow-y: auto;
+      padding: 20px 18px;
+      gap: 16px;
+    }
+    .tab-pane-chat {
+      padding: 0 12px 12px;
+    }
+
+    /* ── Chat context badge ── */
+    .chat-context-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 0 6px;
+      flex-shrink: 0;
+    }
+    .chat-context-dot {
+      width: 8px;
+      height: 8px;
+      background: #14b8a6;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .chat-context-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-context-region {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      margin-left: auto;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Chat section ── */
+    .chat-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+    .chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 0 2px;
+      scroll-behavior: smooth;
+    }
+    .chat-msg { display: flex; }
+    .chat-msg.user { justify-content: flex-end; }
+    .chat-msg.assistant { justify-content: flex-start; }
+    .chat-bubble {
+      max-width: 88%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.84rem;
+      line-height: 1.55;
+      word-wrap: break-word;
+    }
+    .chat-bubble.user {
+      background: #0d9488;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-bubble.assistant {
+      background: #f1f5f9;
+      color: #1e293b;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-bubble.streaming {
+      border-left: 3px solid #0d9488;
+    }
+    .chat-bubble.error {
+      background: #fef2f2;
+      color: #991b1b;
+      font-size: 0.78rem;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      padding-top: 6px;
+    }
+    .chat-input-row input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .chat-input-row input::placeholder { color: #94a3b8; }
+    .chat-input-row input:focus { border-color: #14b8a6; }
+    .chat-input-row button {
+      padding: 8px 14px;
+      background: #0d9488;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .chat-input-row button:hover { background: #0f766e; }
+    .chat-input-row button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    /* ── Panel no-tabs (placeholder/welcome state) ── */
+    .panel-no-tabs {
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* ── Compare mode ── */
+    .compare-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: #fef9c3;
+      border-bottom: 1px solid #fde047;
+      flex-shrink: 0;
+    }
+    .compare-banner-text {
+      flex: 1;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #854d0e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .compare-banner-close {
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: rgba(133,77,14,0.12);
+      color: #854d0e;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .compare-banner-close:hover { background: rgba(133,77,14,0.22); }
+
+    .compare-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      margin-top: 12px;
+      background: #f59e0b;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .compare-btn:hover { background: #d97706; }
+
+    .compare-awaiting {
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .compare-awaiting-card {
+      background: #f0fdfa;
+      border: 1px solid #ccfbf1;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .compare-awaiting-card .result-label { margin-bottom: 2px; }
+    .compare-awaiting-card .result-value { font-size: 0.95rem; }
+    .compare-awaiting-prompt {
+      font-size: 0.82rem;
+      color: #475569;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .tab-pane-compare {
+      overflow-y: auto;
+      padding: 16px 18px;
+      gap: 14px;
+    }
+
+    .compare-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+    .compare-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .compare-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .compare-legend-dot.a { background: #0d9488; }
+    .compare-legend-dot.b { background: #f59e0b; }
+
+    .compare-metric {
+      margin-bottom: 14px;
+    }
+    .compare-metric-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .compare-bar-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .compare-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .compare-bar-val {
+      font-size: 0.82rem;
+      color: #334155;
+      min-width: 54px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .compare-bar-val.winner { font-weight: 700; color: #0f172a; }
+    .compare-bar-track {
+      flex: 1;
+      height: 14px;
+      background: #f1f5f9;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .compare-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .compare-bar-fill.a { background: #0d9488; }
+    .compare-bar-fill.b { background: #f59e0b; }
+
+    .compare-same-board {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      color: #92400e;
+      line-height: 1.45;
+      margin-bottom: 6px;
+    }
+
+    .compare-source {
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    .chat-context-badge.dual { gap: 4px; flex-wrap: wrap; }
+    .chat-context-badge.dual .chat-context-dot.a { background: #0d9488; }
+    .chat-context-badge.dual .chat-context-dot.b { background: #f59e0b; }
+    .chat-context-badge.dual .chat-context-vs {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
     /* Mobile */
     @media (max-width: 640px) {
       main { flex-direction: column; }
-      #map { flex: none; height: 55vh; }
-      #info-panel { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
+      #map { flex: none; height: 50vh; }
+      #info-panel { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; max-height: 50vh; }
       header { flex-direction: column; align-items: stretch; gap: 10px; }
       .search-row { max-width: none; }
       .layer-toggles { flex-wrap: wrap; }
+      .panel-tab { padding: 10px 8px; font-size: 0.74rem; }
+      .chat-bubble { max-width: 92%; font-size: 0.82rem; }
     }
   </style>
 </head>
@@ -275,6 +735,11 @@
       <input type="checkbox" id="toggle-boards" checked>
       <div class="toggle-track" style="--accent:#1d4ed8"></div>
       <span>Neighborhood boards</span>
+    </label>
+    <label class="toggle-label" title="Show neighborhood names on map">
+      <input type="checkbox" id="toggle-names">
+      <div class="toggle-track" style="--accent:#f59e0b"></div>
+      <span>Names</span>
     </label>
   </div>
 </header>
@@ -303,6 +768,26 @@ let highlightBoard = null;
 let addressMarker  = null;
 let searching = false;
 let lastSearch = 0; // for Nominatim rate limiting
+let neighborhoodIndex = []; // sorted { name, feature } for browse combo
+let nameLabelsLayer   = null; // permanent name labels on map
+let nameLabelMarkers  = [];  // { marker, minZoom } for zoom-dependent visibility
+
+// Chat state
+const isFileProtocol = location.protocol === 'file:';
+let chatMessages  = [];
+let chatContext   = null;
+let chatStreaming  = false;
+
+// Compare state
+let compareMode   = false;   // in compare flow (awaiting or active)
+let compareActive = false;   // both A and B selected
+let compareA      = null;    // { micro, board, meta, microName, boardName, region, subdistrict, boardNum }
+let compareB      = null;    // same shape
+let highlightMicroA = null;  // teal highlight for A
+let highlightBoardA = null;
+let highlightMicroB = null;  // orange highlight for B
+let highlightBoardB = null;
+let lastShownData   = null;  // captures current selection for enterCompare()
 
 // ── Map init ────────────────────────────────────────────
 const map = L.map('map', { zoomControl: true }).setView([21.4389, -158.0001], 11);
@@ -352,11 +837,32 @@ async function loadData() {
     document.getElementById('toggle-micro').addEventListener('change', e => {
       e.target.checked ? bgMicroLayer.addTo(map) : map.removeLayer(bgMicroLayer);
       if (highlightMicro) e.target.checked ? highlightMicro.addTo(map) : map.removeLayer(highlightMicro);
+      if (highlightMicroA) e.target.checked ? highlightMicroA.addTo(map) : map.removeLayer(highlightMicroA);
+      if (highlightMicroB) e.target.checked ? highlightMicroB.addTo(map) : map.removeLayer(highlightMicroB);
     });
     document.getElementById('toggle-boards').addEventListener('change', e => {
       e.target.checked ? bgBoardLayer.addTo(map) : map.removeLayer(bgBoardLayer);
       if (highlightBoard) e.target.checked ? highlightBoard.addTo(map) : map.removeLayer(highlightBoard);
+      if (highlightBoardA) e.target.checked ? highlightBoardA.addTo(map) : map.removeLayer(highlightBoardA);
+      if (highlightBoardB) e.target.checked ? highlightBoardB.addTo(map) : map.removeLayer(highlightBoardB);
     });
+
+    buildNeighborhoodIndex();
+    buildNameLabels();
+
+    document.getElementById('toggle-names').addEventListener('change', e => {
+      if (e.target.checked) {
+        nameLabelsLayer.addTo(map);
+        // After adding to map, apply zoom-based visibility immediately
+        // Use requestAnimationFrame to ensure markers have DOM elements
+        requestAnimationFrame(() => updateLabelVisibility());
+      } else {
+        map.removeLayer(nameLabelsLayer);
+      }
+    });
+
+    // Update label visibility on zoom changes
+    map.on('zoomend', updateLabelVisibility);
 
     // Enable search
     const input = document.getElementById('address-input');
@@ -397,12 +903,21 @@ function findFeature(geojson, lat, lng) {
 // ── Map click ────────────────────────────────────────────
 function handleMapClick(lat, lng) {
   if (!microData || !boardsData) return;
-  clearHighlights();
+  localStorage.setItem('onf-welcomed', '1');
 
   const microMatch = findFeature(microData,  lat, lng);
   const boardMatch = findFeature(boardsData, lat, lng);
-
   if (!microMatch && !boardMatch) return;
+
+  // Compare guard: if awaiting second pick, route to completeCompare
+  if (compareMode && !compareActive) {
+    const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+    completeCompare(microMatch, boardMatch, meta);
+    return;
+  }
+  if (compareActive) exitCompare();
+
+  clearHighlights();
 
   const showBoards = document.getElementById('toggle-boards').checked;
   const showMicro  = document.getElementById('toggle-micro').checked;
@@ -428,6 +943,8 @@ async function doSearch() {
 
   const address = document.getElementById('address-input').value.trim();
   if (!address) return;
+
+  localStorage.setItem('onf-welcomed', '1');
 
   // Nominatim rate-limit: 1 req/sec
   const now = Date.now();
@@ -456,6 +973,15 @@ async function doSearch() {
       placeMarker(lat, lng);
       return;
     }
+
+    // Compare guard: if awaiting second pick, route to completeCompare
+    if (compareMode && !compareActive) {
+      const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+      placeMarker(lat, lng);
+      completeCompare(microMatch, boardMatch, meta);
+      return;
+    }
+    if (compareActive) exitCompare();
 
     clearHighlights();
 
@@ -492,20 +1018,14 @@ async function doSearch() {
   }
 }
 
-// ── Render results ───────────────────────────────────────
-function showResults(micro, board, meta) {
-  const microName  = micro ? micro.properties.neighborho : '—';
-  const region     = micro ? micro.properties.region      : '—';
-  const boardName  = board ? board.properties.towns        : '—';
-  const subdistrict = board ? board.properties.sd_desc     : '—';
-  const boardNum   = board ? board.properties.board_num    : '—';
-
+// ── Build data HTML (reusable) ───────────────────────────
+function buildDataHTML(data) {
+  const { microName, region, boardName, subdistrict, boardNum, meta } = data;
   let html = `
     <div class="result-section">
       <div class="result-label">Micro-Neighborhood</div>
       <div class="result-value">${microName}</div>
     </div>
-
     <div class="result-section">
       <div class="result-label">MLS Region</div>
       <div class="result-value">
@@ -513,7 +1033,6 @@ function showResults(micro, board, meta) {
         ${!MLS_READY ? '<span class="badge">MLS polygons coming soon</span>' : ''}
       </div>
     </div>
-
     <div class="result-section">
       <div class="result-label">Neighborhood Board #${boardNum}</div>
       <div class="result-value">${boardName}</div>
@@ -560,8 +1079,29 @@ function showResults(micro, board, meta) {
       </div>
     `;
   }
+  return html;
+}
 
-  html += `
+// ── Render results ───────────────────────────────────────
+function showResults(micro, board, meta) {
+  const microName   = micro ? micro.properties.neighborho : '—';
+  const region      = micro ? micro.properties.region     : '—';
+  const boardName   = board ? board.properties.towns      : '—';
+  const subdistrict = board ? board.properties.sd_desc    : '—';
+  const boardNum    = board ? board.properties.board_num  : '—';
+
+  // Capture for compare mode
+  lastShownData = { micro, board, meta, microName, region, boardName, subdistrict, boardNum };
+
+  // ── Data pane ──
+  let dataHTML = buildDataHTML({ microName, region, boardName, subdistrict, boardNum, meta });
+
+  // Compare button (only when not already in compare mode)
+  if (!compareMode) {
+    dataHTML += `<button class="compare-btn" onclick="enterCompare()">Compare with another neighborhood</button>`;
+  }
+
+  dataHTML += `
     <div class="legend">
       <div class="legend-item">
         <div class="legend-swatch" style="background:#14b8a6;border:2px solid #0f766e;"></div>
@@ -574,7 +1114,67 @@ function showResults(micro, board, meta) {
     </div>
   `;
 
+  // ── Chat pane (only when served via HTTP) ──
+  const chatAvailable = !isFileProtocol;
+  const displayName = microName !== '—' ? microName : boardName;
+  let chatPaneHTML = '';
+
+  if (chatAvailable) {
+    chatMessages = [];
+    chatContext = {
+      microName: microName !== '—' ? microName : null,
+      region: region !== '—' ? region : null,
+      boardName: boardName !== '—' ? boardName : null,
+      subdistrict: subdistrict !== '—' ? subdistrict : null,
+      boardNum: boardNum !== '—' ? boardNum : null,
+      demographics: meta ? {
+        population: meta.population,
+        medianIncome: meta.median_household_income,
+        ownerOccupancy: meta.owner_occupancy_rate,
+        avgHouseholdSize: meta.avg_household_size,
+        housingUnits: meta.housing_units,
+        households: meta.households
+      } : null
+    };
+
+    const regionDisplay = region !== '—' ? region : '';
+    chatPaneHTML = `
+      <div class="tab-pane tab-pane-chat" id="pane-chat">
+        <div class="chat-context-badge">
+          <span class="chat-context-dot"></span>
+          <span class="chat-context-name">${displayName}</span>
+          ${regionDisplay ? `<span class="chat-context-region">${regionDisplay}</span>` : ''}
+        </div>
+        <div class="chat-section">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="chat-bubble assistant">Hi! Ask me anything about ${displayName} — schools, commute, vibe, things to do, you name it.</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Ask a question..." autocomplete="off">
+            <button id="chat-send">Send</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Assemble panel ──
+  const html = `
+    <div class="panel-tabs">
+      <button class="panel-tab active" data-tab="data">Data</button>
+      ${chatAvailable ? '<button class="panel-tab" data-tab="chat">Chat<span class="chat-unread" id="chat-unread-dot"></span></button>' : ''}
+    </div>
+    <div class="tab-pane tab-pane-data active" id="pane-data">
+      ${dataHTML}
+    </div>
+    ${chatPaneHTML}
+  `;
+
   showPanel(html);
+  wireTabSwitching();
+  if (chatAvailable) wireChatEvents();
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -583,13 +1183,253 @@ function showPanel(html) {
 }
 
 function showPlaceholder() {
-  showPanel(`<p class="placeholder">Enter a street address above to find its micro-neighborhood, MLS region, neighborhood board, and demographic profile.</p>`);
+  const welcomed = localStorage.getItem('onf-welcomed');
+  if (welcomed) {
+    showPanel(`
+      <div class="panel-no-tabs">
+        <p class="placeholder">Search an address, click the map, or browse below.</p>
+        ${browseComboHTML()}
+      </div>
+    `);
+  } else {
+    showWelcome();
+  }
+  wireBrowseCombo();
+}
+
+function showWelcome() {
+  showPanel(`
+    <div class="panel-no-tabs">
+      <div class="welcome-card">
+        <h2>Find any neighborhood on Oahu</h2>
+        <p>Look up micro-neighborhoods, board districts, and demographics in seconds.</p>
+        <ul>
+          <li data-icon="&#x1F50D;">Type an address in the search bar</li>
+          <li data-icon="&#x1F5FA;">Click anywhere on the map</li>
+          <li data-icon="&#x1F4CB;">Browse neighborhoods by name below</li>
+        </ul>
+      </div>
+      ${browseComboHTML()}
+    </div>
+  `);
+  wireBrowseCombo();
+}
+
+function browseComboHTML() {
+  return `
+    <div class="browse-combo">
+      <input type="text" id="browse-input" placeholder="Browse neighborhoods..." autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="browse-dropdown">
+      <div class="browse-list" id="browse-dropdown" role="listbox"></div>
+    </div>
+  `;
+}
+
+// ── Neighborhood index & browse ─────────────────────────
+function buildNeighborhoodIndex() {
+  const seen = new Set();
+  neighborhoodIndex = [];
+  for (const f of microData.features) {
+    const name = f.properties.neighborho;
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      neighborhoodIndex.push({ name, feature: f });
+    }
+  }
+  neighborhoodIndex.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function buildNameLabels() {
+  nameLabelsLayer = L.layerGroup();
+  nameLabelMarkers = []; // store { marker, minZoom } for zoom-dependent visibility
+
+  // Calculate area for each neighborhood and sort descending
+  const withArea = neighborhoodIndex.map(({ name, feature }) => ({
+    name,
+    feature,
+    area: turf.area(feature) // area in square meters
+  }));
+  withArea.sort((a, b) => b.area - a.area);
+
+  // Assign zoom tiers based on area rank
+  // Tier 1 (zoom <= 11): top ~12 largest neighborhoods
+  // Tier 2 (zoom 12): next ~25 (cumulative ~37)
+  // Tier 3 (zoom 13): next ~40 (cumulative ~77)
+  // Tier 4 (zoom >= 14): everything else
+  for (let i = 0; i < withArea.length; i++) {
+    const { name, feature } = withArea[i];
+    let minZoom;
+    if (i < 12)       minZoom = 10; // visible at all zoom levels (whole island)
+    else if (i < 37)  minZoom = 12; // medium zoom
+    else if (i < 77)  minZoom = 13; // closer zoom
+    else               minZoom = 14; // street-level zoom
+
+    const center = turf.centroid(feature);
+    const [lng, lat] = center.geometry.coordinates;
+    const icon = L.divIcon({
+      className: 'nb-name-label',
+      html: name,
+      iconSize: null
+    });
+    const marker = L.marker([lat, lng], { icon, interactive: false });
+    marker.addTo(nameLabelsLayer);
+    nameLabelMarkers.push({ marker, minZoom });
+  }
+}
+
+function updateLabelVisibility() {
+  const namesOn = document.getElementById('toggle-names').checked;
+  if (!namesOn || !nameLabelMarkers) return;
+
+  const zoom = map.getZoom();
+  for (const { marker, minZoom } of nameLabelMarkers) {
+    const el = marker.getElement();
+    if (el) {
+      el.style.display = zoom >= minZoom ? '' : 'none';
+    }
+  }
+}
+
+function filterNeighborhoods(query) {
+  if (!query) return neighborhoodIndex.slice(0, 8);
+  const q = query.toLowerCase();
+  return neighborhoodIndex.filter(n => n.name.toLowerCase().includes(q)).slice(0, 8);
+}
+
+function selectNeighborhood(feature) {
+  localStorage.setItem('onf-welcomed', '1');
+
+  // Find matching board for demographics
+  const center = turf.centroid(feature);
+  const [cLng, cLat] = center.geometry.coordinates;
+  const boardMatch = findFeature(boardsData, cLat, cLng);
+  const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+
+  // Compare guard: if awaiting second pick, route to completeCompare
+  if (compareMode && !compareActive) {
+    completeCompare(feature, boardMatch, meta);
+    return;
+  }
+  if (compareActive) exitCompare();
+
+  clearHighlights();
+
+  const showMicro = document.getElementById('toggle-micro').checked;
+  if (showMicro) {
+    highlightMicro = L.geoJSON(feature, {
+      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
+    }).addTo(map);
+    map.fitBounds(highlightMicro.getBounds(), { padding: [48, 48], maxZoom: 15 });
+  }
+
+  const showBoards = document.getElementById('toggle-boards').checked;
+  if (boardMatch && showBoards) {
+    highlightBoard = L.geoJSON(boardMatch, {
+      style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
+    }).addTo(map);
+  }
+
+  showResults(feature, boardMatch, meta);
+}
+
+function wireBrowseCombo() {
+  const input = document.getElementById('browse-input');
+  const list  = document.getElementById('browse-dropdown');
+  if (!input || !list) return;
+
+  let activeIdx = -1;
+
+  function renderList(items) {
+    if (!items.length) {
+      list.innerHTML = '<div class="browse-empty">No matches</div>';
+      list.classList.add('open');
+      input.setAttribute('aria-expanded', 'true');
+      activeIdx = -1;
+      return;
+    }
+    list.innerHTML = items.map((n, i) =>
+      `<div class="browse-item" role="option" data-idx="${i}">${n.name}</div>`
+    ).join('');
+    list.classList.add('open');
+    input.setAttribute('aria-expanded', 'true');
+    activeIdx = -1;
+  }
+
+  function closeList() {
+    list.classList.remove('open');
+    list.innerHTML = '';
+    input.setAttribute('aria-expanded', 'false');
+    activeIdx = -1;
+  }
+
+  function setActive(items, idx) {
+    list.querySelectorAll('.browse-item').forEach(el => el.classList.remove('active'));
+    activeIdx = idx;
+    if (idx >= 0 && idx < items.length) {
+      const el = list.querySelector(`[data-idx="${idx}"]`);
+      if (el) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
+    }
+  }
+
+  let currentItems = [];
+
+  input.addEventListener('focus', () => {
+    currentItems = filterNeighborhoods(input.value.trim());
+    renderList(currentItems);
+  });
+
+  input.addEventListener('input', () => {
+    currentItems = filterNeighborhoods(input.value.trim());
+    renderList(currentItems);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (!list.classList.contains('open')) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (activeIdx < currentItems.length - 1) setActive(currentItems, activeIdx + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (activeIdx > 0) setActive(currentItems, activeIdx - 1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIdx >= 0 && activeIdx < currentItems.length) {
+        input.value = currentItems[activeIdx].name;
+        closeList();
+        selectNeighborhood(currentItems[activeIdx].feature);
+      }
+    } else if (e.key === 'Escape') {
+      closeList();
+      input.blur();
+    }
+  });
+
+  list.addEventListener('mousedown', e => {
+    e.preventDefault(); // prevent blur
+    const item = e.target.closest('.browse-item');
+    if (!item) return;
+    const idx = parseInt(item.dataset.idx);
+    if (idx >= 0 && idx < currentItems.length) {
+      input.value = currentItems[idx].name;
+      closeList();
+      selectNeighborhood(currentItems[idx].feature);
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    // Small delay so mousedown on list fires first
+    setTimeout(closeList, 150);
+  });
 }
 
 function clearHighlights() {
   if (highlightMicro) { map.removeLayer(highlightMicro); highlightMicro = null; }
   if (highlightBoard) { map.removeLayer(highlightBoard); highlightBoard = null; }
   if (addressMarker)  { map.removeLayer(addressMarker);  addressMarker  = null; }
+  if (highlightMicroA) { map.removeLayer(highlightMicroA); highlightMicroA = null; }
+  if (highlightBoardA) { map.removeLayer(highlightBoardA); highlightBoardA = null; }
+  if (highlightMicroB) { map.removeLayer(highlightMicroB); highlightMicroB = null; }
+  if (highlightBoardB) { map.removeLayer(highlightBoardB); highlightBoardB = null; }
 }
 
 function placeMarker(lat, lng) {
@@ -599,6 +1439,518 @@ function placeMarker(lat, lng) {
 }
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Tab & chat functions ─────────────────────────────────
+function wireTabSwitching() {
+  document.querySelectorAll('.panel-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const pane = document.getElementById('pane-' + target);
+      if (pane) pane.classList.add('active');
+      if (target === 'chat') {
+        const dot = document.getElementById('chat-unread-dot');
+        if (dot) dot.classList.remove('visible');
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) chatInput.focus();
+      }
+    });
+  });
+}
+
+function wireChatEvents() {
+  const input = document.getElementById('chat-input');
+  const btn   = document.getElementById('chat-send');
+  if (!input || !btn) return;
+
+  btn.addEventListener('click', sendChatMessage);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) sendChatMessage();
+  });
+}
+
+async function sendChatMessage() {
+  if (chatStreaming) return;
+  const input = document.getElementById('chat-input');
+  const btn   = document.getElementById('chat-send');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  chatMessages.push({ role: 'user', content: text });
+  appendChatBubble('user', text);
+
+  chatStreaming = true;
+  btn.disabled = true;
+  const bubble = appendChatBubble('assistant', '', true);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatMessages, context: chatContext })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }));
+      bubble.textContent = err.error || 'Something went wrong.';
+      bubble.classList.add('error');
+      bubble.classList.remove('streaming');
+      chatMessages.pop(); // remove failed user message
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let assistantText = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === 'content_block_delta' && evt.delta?.text) {
+            assistantText += evt.delta.text;
+            bubble.innerHTML = formatChat(assistantText);
+            scrollChatToBottom();
+          }
+        } catch (_) {}
+      }
+    }
+
+    bubble.classList.remove('streaming');
+    if (assistantText) {
+      chatMessages.push({ role: 'assistant', content: assistantText });
+      // Show unread dot if user is on Data tab
+      const chatTab = document.querySelector('.panel-tab[data-tab="chat"]');
+      if (chatTab && !chatTab.classList.contains('active')) {
+        const dot = document.getElementById('chat-unread-dot');
+        if (dot) dot.classList.add('visible');
+      }
+    }
+  } catch (err) {
+    bubble.textContent = 'Could not connect to the server.';
+    bubble.classList.add('error');
+    bubble.classList.remove('streaming');
+  } finally {
+    chatStreaming = false;
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+function appendChatBubble(role, text, isStreaming) {
+  const container = document.getElementById('chat-messages');
+  const msg = document.createElement('div');
+  msg.className = `chat-msg ${role}`;
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role}${isStreaming ? ' streaming' : ''}`;
+  bubble.textContent = text;
+  msg.appendChild(bubble);
+  container.appendChild(msg);
+  scrollChatToBottom();
+  return bubble;
+}
+
+function formatChat(text) {
+  // Escape HTML, then convert double newlines to paragraph breaks
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return escaped.replace(/\n\n+/g, '<br><br>').replace(/\n/g, '<br>');
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById('chat-messages');
+  if (container) container.scrollTop = container.scrollHeight;
+}
+
+// ── Compare mode ─────────────────────────────────────────
+function enterCompare() {
+  if (!lastShownData) return;
+  compareMode = true;
+  compareActive = false;
+
+  // Store current selection as A
+  const d = lastShownData;
+  compareA = {
+    micro: d.micro, board: d.board, meta: d.meta,
+    microName: d.microName, boardName: d.boardName,
+    region: d.region, subdistrict: d.subdistrict, boardNum: d.boardNum
+  };
+
+  // Transfer existing highlights to compare-A highlights
+  if (highlightMicro) { map.removeLayer(highlightMicro); highlightMicro = null; }
+  if (highlightBoard) { map.removeLayer(highlightBoard); highlightBoard = null; }
+
+  // Draw A in teal
+  const showMicro = document.getElementById('toggle-micro').checked;
+  const showBoards = document.getElementById('toggle-boards').checked;
+  if (compareA.micro && showMicro) {
+    highlightMicroA = L.geoJSON(compareA.micro, {
+      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.30 }
+    }).addTo(map);
+  }
+  if (compareA.board && showBoards) {
+    highlightBoardA = L.geoJSON(compareA.board, {
+      style: { color: '#0f766e', weight: 1.5, fillOpacity: 0, dashArray: '5 4' }
+    }).addTo(map);
+  }
+
+  showCompareAwaiting();
+}
+
+function showCompareAwaiting() {
+  const aName = compareA.microName !== '—' ? compareA.microName : compareA.boardName;
+  const html = `
+    <div class="compare-banner">
+      <span class="compare-banner-text">Comparing: ${aName} vs …</span>
+      <button class="compare-banner-close" onclick="exitCompare()" title="Exit compare">&times;</button>
+    </div>
+    <div class="compare-awaiting">
+      <div class="compare-awaiting-card">
+        <div class="result-label">Selection A</div>
+        <div class="result-value">${aName}</div>
+        ${compareA.region !== '—' ? `<div class="result-sub">${compareA.region}</div>` : ''}
+      </div>
+      <div class="compare-awaiting-prompt">
+        Pick a second neighborhood to compare — click the map, search an address, or browse below.
+      </div>
+      ${browseComboHTML()}
+    </div>
+  `;
+  showPanel(html);
+  wireBrowseCombo();
+}
+
+function completeCompare(micro, board, meta) {
+  const microName   = micro ? micro.properties.neighborho : '—';
+  const boardName   = board ? board.properties.towns      : '—';
+  const region      = micro ? micro.properties.region     : '—';
+  const subdistrict = board ? board.properties.sd_desc    : '—';
+  const boardNum    = board ? board.properties.board_num  : '—';
+
+  // Same neighborhood check
+  const aName = compareA.microName !== '—' ? compareA.microName : compareA.boardName;
+  const bName = microName !== '—' ? microName : boardName;
+  if (aName === bName && aName !== '—') {
+    // Stay in awaiting state, flash a message
+    showCompareAwaiting();
+    const panel = document.querySelector('.compare-awaiting');
+    if (panel) {
+      const notice = document.createElement('div');
+      notice.className = 'compare-same-board';
+      notice.textContent = 'That\'s the same neighborhood! Pick a different one.';
+      panel.insertBefore(notice, panel.querySelector('.browse-combo'));
+      setTimeout(() => notice.remove(), 3000);
+    }
+    return;
+  }
+
+  compareB = { micro, board, meta, microName, boardName, region, subdistrict, boardNum };
+  compareActive = true;
+
+  drawCompareHighlights();
+  fitMapToBothNeighborhoods();
+  showComparePanel();
+}
+
+function drawCompareHighlights() {
+  // Clear any existing highlights
+  if (highlightMicro) { map.removeLayer(highlightMicro); highlightMicro = null; }
+  if (highlightBoard) { map.removeLayer(highlightBoard); highlightBoard = null; }
+  if (highlightMicroA) { map.removeLayer(highlightMicroA); highlightMicroA = null; }
+  if (highlightBoardA) { map.removeLayer(highlightBoardA); highlightBoardA = null; }
+  if (highlightMicroB) { map.removeLayer(highlightMicroB); highlightMicroB = null; }
+  if (highlightBoardB) { map.removeLayer(highlightBoardB); highlightBoardB = null; }
+
+  const showMicro = document.getElementById('toggle-micro').checked;
+  const showBoards = document.getElementById('toggle-boards').checked;
+
+  // A = teal
+  if (compareA.micro && showMicro) {
+    highlightMicroA = L.geoJSON(compareA.micro, {
+      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.30 }
+    }).addTo(map);
+  }
+  if (compareA.board && showBoards) {
+    highlightBoardA = L.geoJSON(compareA.board, {
+      style: { color: '#0f766e', weight: 1.5, fillOpacity: 0, dashArray: '5 4' }
+    }).addTo(map);
+  }
+
+  // B = orange
+  if (compareB.micro && showMicro) {
+    highlightMicroB = L.geoJSON(compareB.micro, {
+      style: { color: '#b45309', weight: 2.5, fillColor: '#f59e0b', fillOpacity: 0.30 }
+    }).addTo(map);
+  }
+  if (compareB.board && showBoards) {
+    highlightBoardB = L.geoJSON(compareB.board, {
+      style: { color: '#b45309', weight: 1.5, fillOpacity: 0, dashArray: '5 4' }
+    }).addTo(map);
+  }
+}
+
+function fitMapToBothNeighborhoods() {
+  const layers = [highlightMicroA, highlightBoardA, highlightMicroB, highlightBoardB].filter(Boolean);
+  if (!layers.length) return;
+  let bounds = layers[0].getBounds();
+  for (let i = 1; i < layers.length; i++) {
+    bounds = bounds.extend(layers[i].getBounds());
+  }
+  map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+}
+
+function showComparePanel() {
+  const aName = compareA.microName !== '—' ? compareA.microName : compareA.boardName;
+  const bName = compareB.microName !== '—' ? compareB.microName : compareB.boardName;
+
+  const chatAvailable = !isFileProtocol;
+
+  // Data pane for B
+  const bDataHTML = buildDataHTML(compareB);
+
+  // Compare tab
+  const compareTabHTML = buildCompareTabHTML(compareA, compareB);
+
+  // Chat pane
+  let chatPaneHTML = '';
+  if (chatAvailable) {
+    chatMessages = [];
+    chatContext = buildDualChatContext(compareA, compareB);
+
+    chatPaneHTML = `
+      <div class="tab-pane tab-pane-chat" id="pane-chat">
+        <div class="chat-context-badge dual">
+          <span class="chat-context-dot a"></span>
+          <span class="chat-context-name">${aName}</span>
+          <span class="chat-context-vs">vs</span>
+          <span class="chat-context-dot b"></span>
+          <span class="chat-context-name">${bName}</span>
+        </div>
+        <div class="chat-section">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="chat-bubble assistant">Hi! I have data on both ${aName} and ${bName}. Ask me anything — lifestyle, schools, commute, cost of living — I'll compare them for you.</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Compare these neighborhoods..." autocomplete="off">
+            <button id="chat-send">Send</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const html = `
+    <div class="compare-banner">
+      <span class="compare-banner-text">${aName} vs ${bName}</span>
+      <button class="compare-banner-close" onclick="exitCompare()" title="Exit compare">&times;</button>
+    </div>
+    <div class="panel-tabs">
+      <button class="panel-tab" data-tab="data">Data</button>
+      <button class="panel-tab active" data-tab="compare">Compare</button>
+      ${chatAvailable ? '<button class="panel-tab" data-tab="chat">Chat<span class="chat-unread" id="chat-unread-dot"></span></button>' : ''}
+    </div>
+    <div class="tab-pane tab-pane-data" id="pane-data">
+      ${bDataHTML}
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#f59e0b;border:2px solid #b45309;"></div>
+          ${bName} (B)
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#14b8a6;border:2px solid #0f766e;"></div>
+          ${aName} (A)
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane tab-pane-compare active" id="pane-compare">
+      ${compareTabHTML}
+    </div>
+    ${chatPaneHTML}
+  `;
+
+  showPanel(html);
+  wireTabSwitching();
+  if (chatAvailable) wireChatEvents();
+}
+
+function buildCompareTabHTML(a, b) {
+  const aName = a.microName !== '—' ? a.microName : a.boardName;
+  const bName = b.microName !== '—' ? b.microName : b.boardName;
+  const sameBoard = a.boardNum !== '—' && b.boardNum !== '—' && a.boardNum === b.boardNum;
+
+  let html = `
+    <div class="compare-legend">
+      <div class="compare-legend-item"><span class="compare-legend-dot a"></span>${aName}</div>
+      <div class="compare-legend-item"><span class="compare-legend-dot b"></span>${bName}</div>
+    </div>
+  `;
+
+  if (sameBoard) {
+    html += `<div class="compare-same-board">Both neighborhoods are in Board #${a.boardNum} (${a.boardName}) — demographics below are identical at the board level.</div>`;
+  }
+
+  const metrics = [
+    {
+      label: 'Median HH Income',
+      valA: a.meta ? a.meta.median_household_income : null,
+      valB: b.meta ? b.meta.median_household_income : null,
+      fmt: v => '$' + (v / 1000).toFixed(0) + 'k'
+    },
+    {
+      label: 'Population',
+      valA: a.meta ? a.meta.population : null,
+      valB: b.meta ? b.meta.population : null,
+      fmt: v => v.toLocaleString()
+    },
+    {
+      label: 'Owner Occupied',
+      valA: a.meta ? a.meta.owner_occupancy_rate : null,
+      valB: b.meta ? b.meta.owner_occupancy_rate : null,
+      fmt: v => Math.round(v * 100) + '%'
+    },
+    {
+      label: 'Avg HH Size',
+      valA: a.meta ? a.meta.avg_household_size : null,
+      valB: b.meta ? b.meta.avg_household_size : null,
+      fmt: v => String(v)
+    },
+    {
+      label: 'Housing Units',
+      valA: a.meta ? a.meta.housing_units : null,
+      valB: b.meta ? b.meta.housing_units : null,
+      fmt: v => v.toLocaleString()
+    },
+    {
+      label: 'Households',
+      valA: a.meta ? a.meta.households : null,
+      valB: b.meta ? b.meta.households : null,
+      fmt: v => v.toLocaleString()
+    }
+  ];
+
+  for (const m of metrics) {
+    const hasA = m.valA != null;
+    const hasB = m.valB != null;
+    const maxVal = Math.max(hasA ? m.valA : 0, hasB ? m.valB : 0);
+    const pctA = maxVal > 0 && hasA ? (m.valA / maxVal * 100) : 0;
+    const pctB = maxVal > 0 && hasB ? (m.valB / maxVal * 100) : 0;
+    const winnerA = hasA && hasB && m.valA > m.valB;
+    const winnerB = hasA && hasB && m.valB > m.valA;
+
+    html += `
+      <div class="compare-metric">
+        <div class="compare-metric-label">${m.label}</div>
+        <div class="compare-bar-row">
+          <div class="compare-bar-item">
+            <span class="compare-bar-val${winnerA ? ' winner' : ''}">${hasA ? m.fmt(m.valA) : '—'}</span>
+            <div class="compare-bar-track">
+              <div class="compare-bar-fill a" style="width:${pctA}%"></div>
+            </div>
+          </div>
+          <div class="compare-bar-item">
+            <span class="compare-bar-val${winnerB ? ' winner' : ''}">${hasB ? m.fmt(m.valB) : '—'}</span>
+            <div class="compare-bar-track">
+              <div class="compare-bar-fill b" style="width:${pctB}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `<div class="compare-source">DPP / ACS 2019–2023 · Board-level estimates</div>`;
+  return html;
+}
+
+function buildDualChatContext(a, b) {
+  const sameBoard = a.boardNum !== '—' && b.boardNum !== '—' && a.boardNum === b.boardNum;
+  return {
+    compareMode: true,
+    sameBoard,
+    neighborhoodA: {
+      microName: a.microName !== '—' ? a.microName : null,
+      region: a.region !== '—' ? a.region : null,
+      boardName: a.boardName !== '—' ? a.boardName : null,
+      subdistrict: a.subdistrict !== '—' ? a.subdistrict : null,
+      boardNum: a.boardNum !== '—' ? a.boardNum : null,
+      demographics: a.meta ? {
+        population: a.meta.population,
+        medianIncome: a.meta.median_household_income,
+        ownerOccupancy: a.meta.owner_occupancy_rate,
+        avgHouseholdSize: a.meta.avg_household_size,
+        housingUnits: a.meta.housing_units,
+        households: a.meta.households
+      } : null
+    },
+    neighborhoodB: {
+      microName: b.microName !== '—' ? b.microName : null,
+      region: b.region !== '—' ? b.region : null,
+      boardName: b.boardName !== '—' ? b.boardName : null,
+      subdistrict: b.subdistrict !== '—' ? b.subdistrict : null,
+      boardNum: b.boardNum !== '—' ? b.boardNum : null,
+      demographics: b.meta ? {
+        population: b.meta.population,
+        medianIncome: b.meta.median_household_income,
+        ownerOccupancy: b.meta.owner_occupancy_rate,
+        avgHouseholdSize: b.meta.avg_household_size,
+        housingUnits: b.meta.housing_units,
+        households: b.meta.households
+      } : null
+    }
+  };
+}
+
+function exitCompare() {
+  compareMode = false;
+  compareActive = false;
+  compareA = null;
+  compareB = null;
+
+  // Clear compare highlights
+  if (highlightMicroA) { map.removeLayer(highlightMicroA); highlightMicroA = null; }
+  if (highlightBoardA) { map.removeLayer(highlightBoardA); highlightBoardA = null; }
+  if (highlightMicroB) { map.removeLayer(highlightMicroB); highlightMicroB = null; }
+  if (highlightBoardB) { map.removeLayer(highlightBoardB); highlightBoardB = null; }
+
+  // Restore last shown data if available
+  if (lastShownData) {
+    clearHighlights();
+    const d = lastShownData;
+    const showMicro = document.getElementById('toggle-micro').checked;
+    const showBoards = document.getElementById('toggle-boards').checked;
+    if (d.micro && showMicro) {
+      highlightMicro = L.geoJSON(d.micro, {
+        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
+      }).addTo(map);
+      map.fitBounds(highlightMicro.getBounds(), { padding: [48, 48], maxZoom: 15 });
+    }
+    if (d.board && showBoards) {
+      highlightBoard = L.geoJSON(d.board, {
+        style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
+      }).addTo(map);
+    }
+    showResults(d.micro, d.board, d.meta);
+  } else {
+    clearHighlights();
+    showPlaceholder();
+  }
+}
 
 // ── Event listeners ──────────────────────────────────────
 document.getElementById('search-btn').addEventListener('click', doSearch);
