@@ -777,6 +777,7 @@ let nameLabelMarkers  = [];  // { marker, minZoom } for zoom-dependent visibilit
 
 // Chat state
 const isFileProtocol = location.protocol === 'file:';
+const isStaticHost   = isFileProtocol || location.hostname.endsWith('github.io') || location.hostname.endsWith('gitlab.io') || location.hostname.endsWith('netlify.app');
 let chatMessages  = [];
 let chatContext   = null;
 let chatStreaming  = false;
@@ -1119,7 +1120,7 @@ function showResults(micro, board, meta) {
   `;
 
   // ── Chat pane (only when served via HTTP) ──
-  const chatAvailable = !isFileProtocol;
+  const chatAvailable = !isStaticHost;
   const displayName = microName !== '—' ? microName : boardName;
   let chatPaneHTML = '';
 
@@ -1530,8 +1531,15 @@ async function sendChatMessage() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Request failed' }));
-      bubble.textContent = err.error || 'Something went wrong.';
+      const contentType = res.headers.get('content-type') || '';
+      let errorMsg;
+      if (res.status === 404 || !contentType.includes('json')) {
+        errorMsg = 'Chat requires the local server — run: node server.js';
+      } else {
+        const err = await res.json().catch(() => ({}));
+        errorMsg = err.error || 'Something went wrong.';
+      }
+      bubble.textContent = errorMsg;
       bubble.classList.add('error');
       bubble.classList.remove('streaming');
       chatMessages.pop(); // remove failed user message
@@ -1578,7 +1586,7 @@ async function sendChatMessage() {
       }
     }
   } catch (err) {
-    bubble.textContent = 'Could not connect to the server.';
+    bubble.textContent = 'Could not connect — run: node server.js';
     bubble.classList.add('error');
     bubble.classList.remove('streaming');
   } finally {
@@ -1753,7 +1761,7 @@ function showComparePanel() {
   const aName = compareA.microName !== '—' ? compareA.microName : compareA.boardName;
   const bName = compareB.microName !== '—' ? compareB.microName : compareB.boardName;
 
-  const chatAvailable = !isFileProtocol;
+  const chatAvailable = !isStaticHost;
 
   // Data pane for B
   const bDataHTML = buildDataHTML(compareB);
