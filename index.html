@@ -6,6 +6,18 @@
   <title>Oahu Neighborhood Finder</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
+    :root {
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-light: #14b8a6;
+      --primary-bg: #f0fdfa;
+      --primary-border: #ccfbf1;
+      --surface: #f8fafc;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --text-faint: #94a3b8;
+      --border: #e2e8f0;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -116,7 +128,7 @@
       font-size: 0.68rem;
       font-weight: 600;
       letter-spacing: 0.08em;
-      color: #94a3b8;
+      color: var(--text-muted);
       text-transform: uppercase;
       margin-bottom: 4px;
     }
@@ -135,9 +147,9 @@
       display: inline-block;
       font-size: 0.65rem;
       font-weight: 500;
-      background: #fef9c3;
-      color: #854d0e;
-      border: 1px solid #fde047;
+      background: var(--primary-bg);
+      color: var(--primary-dark);
+      border: 1px solid var(--primary-border);
       border-radius: 4px;
       padding: 1px 6px;
       vertical-align: middle;
@@ -404,7 +416,8 @@
       transition: color 0.15s;
     }
     .panel-tab:hover { color: #0f172a; }
-    .panel-tab.active { color: #0d9488; }
+    .panel-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .panel-tab.active { color: var(--primary); }
     .panel-tab.active::after {
       content: '';
       position: absolute;
@@ -437,7 +450,7 @@
       overflow-y: auto;
       padding: 20px 18px;
       gap: 16px;
-      background: linear-gradient(180deg, #f0fdfa 0%, #f6fbfa 45%, #fff 55%);
+      background: var(--surface);
     }
     .tab-pane-chat {
       padding: 0 12px 12px;
@@ -556,6 +569,14 @@
     .chat-input-row button:hover { background: #0f766e; }
     .chat-input-row button:disabled { background: #94a3b8; cursor: not-allowed; }
 
+    /* Focus outlines for accessibility */
+    #info-panel button:focus-visible,
+    #info-panel input:focus-visible,
+    #info-panel a:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
     /* ── Panel no-tabs (placeholder/welcome state) ── */
     .panel-no-tabs {
       padding: 20px 18px;
@@ -607,7 +628,7 @@
       width: 100%;
       padding: 10px 14px;
       margin-top: 12px;
-      background: #f59e0b;
+      background: var(--primary);
       color: #fff;
       border: none;
       border-radius: 6px;
@@ -616,7 +637,7 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .compare-btn:hover { background: #d97706; }
+    .compare-btn:hover { background: var(--primary-dark); }
 
     .compare-awaiting {
       padding: 16px 18px;
@@ -746,7 +767,7 @@
       position: absolute;
       top: 100%;
       left: 0;
-      right: 70px;
+      right: 0;
       max-height: 220px;
       overflow-y: auto;
       background: #1e293b;
@@ -867,13 +888,20 @@
     /* Mobile */
     @media (max-width: 640px) {
       main { flex-direction: column; }
-      #map { flex: none; height: 50vh; }
-      #info-panel { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; max-height: 50vh; }
+      #map { flex: none; height: 65vh; }
+      #info-panel { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; max-height: 35vh; }
       header { flex-direction: column; align-items: stretch; gap: 10px; }
       .search-row { max-width: none; }
       .layer-toggles { flex-wrap: wrap; }
-      .panel-tab { padding: 10px 8px; font-size: 0.74rem; }
+      .panel-tab { padding: 12px 8px; font-size: 0.78rem; min-height: 44px; }
       .chat-bubble { max-width: 92%; font-size: 0.82rem; }
+      .toggle-label { min-height: 44px; }
+      .saved-prop-chip { min-height: 44px; padding: 8px 12px; }
+      .compare-banner-close { width: 44px; height: 44px; }
+      .chat-input-row button { min-height: 44px; }
+      .chat-input-row input { min-height: 44px; }
+      #search-btn { min-height: 44px; }
+      #address-input { min-height: 44px; }
     }
   </style>
 </head>
@@ -908,9 +936,9 @@
 
 <main>
   <div id="map"></div>
-  <div id="info-panel">
-    <div class="loading-msg">Loading neighborhood data...</div>
-  </div>
+  <aside id="info-panel" aria-label="Neighborhood details">
+    <div class="loading-msg" role="status">Loading neighborhood data...</div>
+  </aside>
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -918,6 +946,12 @@
 <script>
 // ── Config ──────────────────────────────────────────────
 const MLS_READY = false; // flip to true when mls_neighborhoods.geojson is real
+
+// ── Sanitization ────────────────────────────────────────
+function sanitize(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
 // ── State ───────────────────────────────────────────────
 let boardsData = null;
@@ -984,7 +1018,7 @@ async function loadData() {
       style: { color: '#1d4ed8', weight: 1, fillOpacity: 0, dashArray: '5 4' },
       onEachFeature(feature, layer) {
         layer.bindTooltip(
-          `<strong>${feature.properties.towns}</strong><br>${feature.properties.sd_desc}`,
+          `<strong>${sanitize(feature.properties.towns)}</strong><br>${sanitize(feature.properties.sd_desc)}`,
           { sticky: true, className: 'nb-tooltip' }
         );
         layer.on('click', e => handleMapClick(e.latlng.lat, e.latlng.lng));
@@ -996,7 +1030,7 @@ async function loadData() {
     bgMicroLayer = L.geoJSON(microData, {
       style: { color: '#0f766e', weight: 0.8, fillOpacity: 0.04, fillColor: '#14b8a6' },
       onEachFeature(feature, layer) {
-        layer.bindTooltip(feature.properties.neighborho, { sticky: true, className: 'nb-tooltip' });
+        layer.bindTooltip(sanitize(feature.properties.neighborho), { sticky: true, className: 'nb-tooltip' });
         layer.on('click', e => handleMapClick(e.latlng.lat, e.latlng.lng));
         layer.on('mouseover', () => layer.getElement() && (layer.getElement().style.cursor = 'pointer'));
       }
@@ -1044,7 +1078,7 @@ async function loadData() {
 
     showPlaceholder();
   } catch (err) {
-    showPanel(`<div class="error-msg">Failed to load neighborhood data. Refresh to try again.</div>`);
+    showPanel(`<div class="error-msg" role="alert">Failed to load neighborhood data. Refresh to try again.</div>`);
   }
 }
 
@@ -1074,38 +1108,7 @@ function findFeature(geojson, lat, lng) {
 // ── Map click ────────────────────────────────────────────
 function handleMapClick(lat, lng) {
   if (!microData || !boardsData) return;
-  localStorage.setItem('onf-welcomed', '1');
-
-  const microMatch = findFeature(microData,  lat, lng);
-  const boardMatch = findFeature(boardsData, lat, lng);
-  if (!microMatch && !boardMatch) return;
-
-  // Compare guard: if awaiting second pick, route to completeCompare
-  if (compareMode && !compareActive) {
-    const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-    completeCompare(microMatch, boardMatch, meta);
-    return;
-  }
-  if (compareActive) exitCompare();
-
-  clearHighlights();
-
-  const showBoards = document.getElementById('toggle-boards').checked;
-  const showMicro  = document.getElementById('toggle-micro').checked;
-
-  if (boardMatch && showBoards) {
-    highlightBoard = L.geoJSON(boardMatch, {
-      style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
-    }).addTo(map);
-  }
-  if (microMatch && showMicro) {
-    highlightMicro = L.geoJSON(microMatch, {
-      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
-    }).addTo(map);
-  }
-
-  const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-  showResults(microMatch, boardMatch, meta);
+  selectLocation(lat, lng);
 }
 
 // ── Search ───────────────────────────────────────────────
@@ -1123,66 +1126,23 @@ async function doSearch() {
   if (wait > 0) await delay(wait);
 
   searching = true;
-  document.getElementById('search-btn').textContent = '...';
-  showPanel(`<div class="loading-msg">Looking up address…</div>`);
+  document.getElementById('search-btn').textContent = 'Searching\u2026';
+  showPanel(`<div class="loading-msg" role="status">Looking up address…</div>`);
 
   try {
     lastSearch = Date.now();
     const coords = await geocode(address);
 
     if (!coords) {
-      showPanel(`<div class="error-msg">No results. Try a full street address on Oahu.</div>`);
+      showPanel(`<div class="error-msg" role="alert">No results. Try a full street address on Oahu.</div>`);
       return;
     }
 
     const { lat, lng } = coords;
-    const microMatch = findFeature(microData,  lat, lng);
-    const boardMatch = findFeature(boardsData, lat, lng);
-
-    if (!microMatch && !boardMatch) {
-      showPanel(`<div class="error-msg">Address found but is outside known neighborhood boundaries.</div>`);
-      placeMarker(lat, lng);
-      return;
-    }
-
-    // Compare guard: if awaiting second pick, route to completeCompare
-    if (compareMode && !compareActive) {
-      const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-      placeMarker(lat, lng);
-      completeCompare(microMatch, boardMatch, meta);
-      return;
-    }
-    if (compareActive) exitCompare();
-
-    clearHighlights();
-
-    const showBoards = document.getElementById('toggle-boards').checked;
-    const showMicro  = document.getElementById('toggle-micro').checked;
-
-    // Highlight board sub-district (behind, dashed) — only if layer is on
-    if (boardMatch && showBoards) {
-      highlightBoard = L.geoJSON(boardMatch, {
-        style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
-      }).addTo(map);
-    }
-
-    // Highlight micro-neighborhood (front, solid) — only if layer is on
-    if (microMatch && showMicro) {
-      highlightMicro = L.geoJSON(microMatch, {
-        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
-      }).addTo(map);
-    }
-
-    placeMarker(lat, lng);
-
-    const fitLayer = highlightMicro || highlightBoard;
-    if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
-
-    const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-    showResults(microMatch, boardMatch, meta, address, lat, lng);
+    selectLocation(lat, lng, { address });
 
   } catch (err) {
-    showPanel(`<div class="error-msg">Try again in a moment.</div>`);
+    showPanel(`<div class="error-msg" role="alert">Try again in a moment.</div>`);
   } finally {
     searching = false;
     document.getElementById('search-btn').textContent = 'Search';
@@ -1195,19 +1155,19 @@ function buildDataHTML(data) {
   let html = `
     <div class="result-section">
       <div class="result-label">Micro-Neighborhood</div>
-      <div class="result-value">${microName}</div>
+      <div class="result-value">${sanitize(microName)}</div>
     </div>
     <div class="result-section">
       <div class="result-label">MLS Region</div>
       <div class="result-value">
-        ${region}
+        ${sanitize(region)}
         ${!MLS_READY ? '<span class="badge">MLS polygons coming soon</span>' : ''}
       </div>
     </div>
     <div class="result-section">
-      <div class="result-label">Neighborhood Board #${boardNum}</div>
-      <div class="result-value">${boardName}</div>
-      <div class="result-sub">${subdistrict}</div>
+      <div class="result-label">Neighborhood Board #${sanitize(boardNum)}</div>
+      <div class="result-value">${sanitize(boardName)}</div>
+      <div class="result-sub">${sanitize(subdistrict)}</div>
     </div>
   `;
 
@@ -1368,8 +1328,8 @@ function showResults(micro, board, meta, searchAddress, searchLat, searchLng) {
       <div class="tab-pane tab-pane-chat" id="pane-chat">
         <div class="chat-context-badge">
           <span class="chat-context-dot"></span>
-          <span class="chat-context-name">${displayName}</span>
-          ${regionDisplay ? `<span class="chat-context-region">${regionDisplay}</span>` : ''}
+          <span class="chat-context-name">${sanitize(displayName)}</span>
+          ${regionDisplay ? `<span class="chat-context-region">${sanitize(regionDisplay)}</span>` : ''}
         </div>
         <div class="chat-section">
           <div class="chat-input-row">
@@ -1378,7 +1338,7 @@ function showResults(micro, board, meta, searchAddress, searchLat, searchLng) {
           </div>
           <div class="chat-messages" id="chat-messages">
             <div class="chat-msg assistant">
-              <div class="chat-bubble assistant">Hi! Ask me anything about ${displayName} — schools, commute, vibe, things to do, you name it.</div>
+              <div class="chat-bubble assistant">Hi! Ask me anything about ${sanitize(displayName)} — schools, commute, vibe, things to do, you name it.</div>
             </div>
           </div>
         </div>
@@ -1519,7 +1479,7 @@ function buildNameLabels() {
     const [lng, lat] = center.geometry.coordinates;
     const icon = L.divIcon({
       className: 'nb-name-label',
-      html: name,
+      html: sanitize(name),
       iconSize: null
     });
     const marker = L.marker([lat, lng], { icon, interactive: false });
@@ -1580,39 +1540,9 @@ function filterNeighborhoods(query) {
 }
 
 function selectNeighborhood(feature) {
-  localStorage.setItem('onf-welcomed', '1');
-
-  // Find matching board for demographics
   const center = turf.centroid(feature);
   const [cLng, cLat] = center.geometry.coordinates;
-  const boardMatch = findFeature(boardsData, cLat, cLng);
-  const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-
-  // Compare guard: if awaiting second pick, route to completeCompare
-  if (compareMode && !compareActive) {
-    completeCompare(feature, boardMatch, meta);
-    return;
-  }
-  if (compareActive) exitCompare();
-
-  clearHighlights();
-
-  const showMicro = document.getElementById('toggle-micro').checked;
-  if (showMicro) {
-    highlightMicro = L.geoJSON(feature, {
-      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
-    }).addTo(map);
-    map.fitBounds(highlightMicro.getBounds(), { padding: [48, 48], maxZoom: 15 });
-  }
-
-  const showBoards = document.getElementById('toggle-boards').checked;
-  if (boardMatch && showBoards) {
-    highlightBoard = L.geoJSON(boardMatch, {
-      style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
-    }).addTo(map);
-  }
-
-  showResults(feature, boardMatch, meta);
+  selectLocation(cLat, cLng, { microFeature: feature });
 }
 
 function wireBrowseCombo() {
@@ -1631,7 +1561,7 @@ function wireBrowseCombo() {
       return;
     }
     list.innerHTML = items.map((n, i) =>
-      `<div class="browse-item" role="option" data-idx="${i}">${n.name}</div>`
+      `<div class="browse-item" role="option" data-idx="${i}">${sanitize(n.name)}</div>`
     ).join('');
     list.classList.add('open');
     input.setAttribute('aria-expanded', 'true');
@@ -1724,6 +1654,57 @@ function placeMarker(lat, lng) {
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// ── Unified location selection ──────────────────────────
+// Single entry point for highlight + fitBounds + showResults
+// Options: { address, lat, lng, microFeature } — lat/lng used for marker + point-in-polygon
+//          microFeature: if provided, skip point-in-polygon for micro (used by browse)
+function selectLocation(lat, lng, { address, microFeature } = {}) {
+  localStorage.setItem('onf-welcomed', '1');
+
+  const microMatch = microFeature || findFeature(microData, lat, lng);
+  const boardMatch = findFeature(boardsData, lat, lng);
+
+  if (!microMatch && !boardMatch) {
+    showPanel(`<div class="error-msg" role="alert">Address found but is outside known neighborhood boundaries.</div>`);
+    clearHighlights();
+    if (lat != null) placeMarker(lat, lng);
+    return;
+  }
+
+  const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
+
+  // Compare guard
+  if (compareMode && !compareActive) {
+    if (lat != null) { clearHighlights(); placeMarker(lat, lng); }
+    completeCompare(microMatch, boardMatch, meta);
+    return;
+  }
+  if (compareActive) exitCompare();
+
+  clearHighlights();
+
+  const showBoards = document.getElementById('toggle-boards').checked;
+  const showMicro  = document.getElementById('toggle-micro').checked;
+
+  if (boardMatch && showBoards) {
+    highlightBoard = L.geoJSON(boardMatch, {
+      style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
+    }).addTo(map);
+  }
+  if (microMatch && showMicro) {
+    highlightMicro = L.geoJSON(microMatch, {
+      style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
+    }).addTo(map);
+  }
+
+  if (lat != null) placeMarker(lat, lng);
+
+  const fitLayer = highlightMicro || highlightBoard;
+  if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
+
+  showResults(microMatch, boardMatch, meta, address, lat, lng);
+}
+
 // ── Address Autocomplete ─────────────────────────────────
 async function autocompleteSearch(query) {
   const bbox = '-158.3,21.2,-157.6,21.8';
@@ -1746,7 +1727,7 @@ function wireAddressAutocomplete() {
       return;
     }
     list.innerHTML = results.map((r, i) =>
-      `<div class="address-ac-item" role="option" data-idx="${i}" title="${r.display_name}">${r.display_name}</div>`
+      `<div class="address-ac-item" role="option" data-idx="${i}" title="${sanitize(r.display_name)}">${sanitize(r.display_name)}</div>`
     ).join('');
     list.classList.add('open');
     input.setAttribute('aria-expanded', 'true');
@@ -1773,59 +1754,25 @@ function wireAddressAutocomplete() {
   function selectAcResult(result) {
     input.value = result.display_name;
     closeAcList();
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-
-    localStorage.setItem('onf-welcomed', '1');
-
-    const microMatch = findFeature(microData,  lat, lng);
-    const boardMatch = findFeature(boardsData, lat, lng);
-
-    if (!microMatch && !boardMatch) {
-      showPanel(`<div class="error-msg">Address found but is outside known neighborhood boundaries.</div>`);
-      clearHighlights();
-      placeMarker(lat, lng);
-      return;
-    }
-
-    if (compareMode && !compareActive) {
-      const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-      clearHighlights();
-      placeMarker(lat, lng);
-      completeCompare(microMatch, boardMatch, meta);
-      return;
-    }
-    if (compareActive) exitCompare();
-
-    clearHighlights();
-
-    const showBoards = document.getElementById('toggle-boards').checked;
-    const showMicro  = document.getElementById('toggle-micro').checked;
-
-    if (boardMatch && showBoards) {
-      highlightBoard = L.geoJSON(boardMatch, {
-        style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
-      }).addTo(map);
-    }
-    if (microMatch && showMicro) {
-      highlightMicro = L.geoJSON(microMatch, {
-        style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
-      }).addTo(map);
-    }
-
-    placeMarker(lat, lng);
-
-    const fitLayer = highlightMicro || highlightBoard;
-    if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
-
-    const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-    showResults(microMatch, boardMatch, meta, result.display_name, lat, lng);
+    selectLocation(parseFloat(result.lat), parseFloat(result.lon), { address: result.display_name });
   }
 
   input.addEventListener('input', () => {
     clearTimeout(acTimer);
     const q = input.value.trim();
+    if (q.length > 0 && q.length < 3) {
+      list.innerHTML = '<div class="address-ac-empty">Type 3+ characters</div>';
+      list.classList.add('open');
+      input.setAttribute('aria-expanded', 'true');
+      acIdx = -1;
+      return;
+    }
     if (q.length < 3) { closeAcList(); return; }
+
+    // Show loading indicator
+    list.innerHTML = '<div class="address-ac-empty">Searching\u2026</div>';
+    list.classList.add('open');
+    input.setAttribute('aria-expanded', 'true');
 
     acTimer = setTimeout(async () => {
       const now = Date.now();
@@ -1915,9 +1862,9 @@ function savedPropsHTML() {
       </div>
       <div class="saved-props-chips">
         ${props.map(p => `
-          <div class="saved-prop-chip" data-key="${p.key}" data-lat="${p.lat}" data-lng="${p.lng}" title="${p.address}">
-            <span class="saved-prop-chip-label">${p.microName !== '—' ? p.microName : p.boardName}</span>
-            <button class="saved-prop-chip-remove" data-key="${p.key}">&times;</button>
+          <div class="saved-prop-chip" data-key="${sanitize(p.key)}" data-lat="${sanitize(p.lat)}" data-lng="${sanitize(p.lng)}" title="${sanitize(p.address)}">
+            <span class="saved-prop-chip-label">${sanitize(p.microName !== '—' ? p.microName : p.boardName)}</span>
+            <button class="saved-prop-chip-remove" data-key="${sanitize(p.key)}">&times;</button>
           </div>
         `).join('')}
       </div>
@@ -1925,55 +1872,13 @@ function savedPropsHTML() {
   `;
 }
 
-function wireSavedPropsEvents() {
-  document.querySelectorAll('.saved-prop-chip').forEach(chip => {
-    chip.addEventListener('click', e => {
-      if (e.target.closest('.saved-prop-chip-remove')) return;
-      const lat = parseFloat(chip.dataset.lat);
-      const lng = parseFloat(chip.dataset.lng);
-      const microMatch = findFeature(microData,  lat, lng);
-      const boardMatch = findFeature(boardsData, lat, lng);
-      if (!microMatch && !boardMatch) return;
-
-      if (compareActive) exitCompare();
-      clearHighlights();
-
-      const showBoards = document.getElementById('toggle-boards').checked;
-      const showMicro  = document.getElementById('toggle-micro').checked;
-
-      if (boardMatch && showBoards) {
-        highlightBoard = L.geoJSON(boardMatch, {
-          style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.15, dashArray: '6 4' }
-        }).addTo(map);
-      }
-      if (microMatch && showMicro) {
-        highlightMicro = L.geoJSON(microMatch, {
-          style: { color: '#0f766e', weight: 2.5, fillColor: '#14b8a6', fillOpacity: 0.35 }
-        }).addTo(map);
-      }
-
-      placeMarker(lat, lng);
-      const fitLayer = highlightMicro || highlightBoard;
-      if (fitLayer) map.fitBounds(fitLayer.getBounds(), { padding: [48, 48], maxZoom: 15 });
-
-      // Find the saved property to get its address
-      const saved = getSavedProperties().find(p => p.key === chip.dataset.key);
-      const meta = boardMatch ? metaByBoardNum[boardMatch.properties.board_num] : null;
-      showResults(microMatch, boardMatch, meta, saved ? saved.address : null, lat, lng);
-    });
-  });
-
-  document.querySelectorAll('.saved-prop-chip-remove').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      removeSavedProperty(btn.dataset.key);
-      refreshSavedPropsUI();
-    });
-  });
-}
+// wireSavedPropsEvents, wireTabSwitching, wireChatEvents are no-ops now;
+// all handled by panel delegation below.
+function wireSavedPropsEvents() {}
+function wireTabSwitching() {}
+function wireChatEvents() {}
 
 function refreshSavedPropsUI() {
-  // Re-render saved props sections wherever they appear
   document.querySelectorAll('.saved-props').forEach(el => {
     const newHTML = savedPropsHTML();
     if (newHTML) {
@@ -1981,40 +1886,62 @@ function refreshSavedPropsUI() {
     } else {
       el.remove();
     }
-    wireSavedPropsEvents();
   });
 }
 
-// ── Tab & chat functions ─────────────────────────────────
-function wireTabSwitching() {
-  document.querySelectorAll('.panel-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.tab;
-      document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      const pane = document.getElementById('pane-' + target);
-      if (pane) pane.classList.add('active');
-      if (target === 'chat') {
-        const dot = document.getElementById('chat-unread-dot');
-        if (dot) dot.classList.remove('visible');
-        const chatInput = document.getElementById('chat-input');
-        if (chatInput) chatInput.focus();
-      }
-    });
-  });
-}
+// ── Panel event delegation ───────────────────────────────
+// Single listener handles all panel interactions; no re-wiring needed.
+document.getElementById('info-panel').addEventListener('click', e => {
+  // Tab switching
+  const tab = e.target.closest('.panel-tab');
+  if (tab) {
+    const target = tab.dataset.tab;
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const pane = document.getElementById('pane-' + target);
+    if (pane) pane.classList.add('active');
+    if (target === 'chat') {
+      const dot = document.getElementById('chat-unread-dot');
+      if (dot) dot.classList.remove('visible');
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) chatInput.focus();
+    }
+    return;
+  }
 
-function wireChatEvents() {
-  const input = document.getElementById('chat-input');
-  const btn   = document.getElementById('chat-send');
-  if (!input || !btn) return;
+  // Chat send button
+  if (e.target.closest('#chat-send')) {
+    sendChatMessage();
+    return;
+  }
 
-  btn.addEventListener('click', sendChatMessage);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) sendChatMessage();
-  });
-}
+  // Saved property chip remove
+  const removeBtn = e.target.closest('.saved-prop-chip-remove');
+  if (removeBtn) {
+    e.stopPropagation();
+    removeSavedProperty(removeBtn.dataset.key);
+    refreshSavedPropsUI();
+    return;
+  }
+
+  // Saved property chip click
+  const chip = e.target.closest('.saved-prop-chip');
+  if (chip) {
+    const lat = parseFloat(chip.dataset.lat);
+    const lng = parseFloat(chip.dataset.lng);
+    const saved = getSavedProperties().find(p => p.key === chip.dataset.key);
+    selectLocation(lat, lng, { address: saved ? saved.address : null });
+    return;
+  }
+});
+
+// Chat input Enter key — delegated via keydown on panel
+document.getElementById('info-panel').addEventListener('keydown', e => {
+  if (e.target.closest('#chat-input') && e.key === 'Enter' && !e.shiftKey) {
+    sendChatMessage();
+  }
+});
 
 async function sendChatMessage() {
   if (chatStreaming) return;
@@ -2167,14 +2094,14 @@ function showCompareAwaiting() {
   const aName = compareA.microName !== '—' ? compareA.microName : compareA.boardName;
   const html = `
     <div class="compare-banner">
-      <span class="compare-banner-text">Comparing: ${aName} vs …</span>
+      <span class="compare-banner-text">Comparing: ${sanitize(aName)} vs …</span>
       <button class="compare-banner-close" onclick="exitCompare()" title="Exit compare">&times;</button>
     </div>
     <div class="compare-awaiting">
       <div class="compare-awaiting-card">
         <div class="result-label">Selection A</div>
-        <div class="result-value">${aName}</div>
-        ${compareA.region !== '—' ? `<div class="result-sub">${compareA.region}</div>` : ''}
+        <div class="result-value">${sanitize(aName)}</div>
+        ${compareA.region !== '—' ? `<div class="result-sub">${sanitize(compareA.region)}</div>` : ''}
       </div>
       <div class="compare-awaiting-prompt">
         Pick a second neighborhood to compare — click the map, search an address, or browse below.
@@ -2287,10 +2214,10 @@ function showComparePanel() {
       <div class="tab-pane tab-pane-chat" id="pane-chat">
         <div class="chat-context-badge dual">
           <span class="chat-context-dot a"></span>
-          <span class="chat-context-name">${aName}</span>
+          <span class="chat-context-name">${sanitize(aName)}</span>
           <span class="chat-context-vs">vs</span>
           <span class="chat-context-dot b"></span>
-          <span class="chat-context-name">${bName}</span>
+          <span class="chat-context-name">${sanitize(bName)}</span>
         </div>
         <div class="chat-section">
           <div class="chat-input-row">
@@ -2299,7 +2226,7 @@ function showComparePanel() {
           </div>
           <div class="chat-messages" id="chat-messages">
             <div class="chat-msg assistant">
-              <div class="chat-bubble assistant">Hi! I have data on both ${aName} and ${bName}. Ask me anything — lifestyle, schools, commute, cost of living — I'll compare them for you.</div>
+              <div class="chat-bubble assistant">Hi! I have data on both ${sanitize(aName)} and ${sanitize(bName)}. Ask me anything — lifestyle, schools, commute, cost of living — I'll compare them for you.</div>
             </div>
           </div>
         </div>
@@ -2309,7 +2236,7 @@ function showComparePanel() {
 
   const html = `
     <div class="compare-banner">
-      <span class="compare-banner-text">${aName} vs ${bName}</span>
+      <span class="compare-banner-text">${sanitize(aName)} vs ${sanitize(bName)}</span>
       <button class="compare-banner-close" onclick="exitCompare()" title="Exit compare">&times;</button>
     </div>
     <div class="panel-tabs">
@@ -2338,13 +2265,13 @@ function buildCompareTabHTML(a, b) {
 
   let html = `
     <div class="compare-legend">
-      <div class="compare-legend-item"><span class="compare-legend-dot a"></span>${aName}</div>
-      <div class="compare-legend-item"><span class="compare-legend-dot b"></span>${bName}</div>
+      <div class="compare-legend-item"><span class="compare-legend-dot a"></span>${sanitize(aName)}</div>
+      <div class="compare-legend-item"><span class="compare-legend-dot b"></span>${sanitize(bName)}</div>
     </div>
   `;
 
   if (sameBoard) {
-    html += `<div class="compare-same-board">Both neighborhoods are in Board #${a.boardNum} (${a.boardName}) — demographics below are identical at the board level.</div>`;
+    html += `<div class="compare-same-board">Both neighborhoods are in Board #${sanitize(a.boardNum)} (${sanitize(a.boardName)}) — demographics below are identical at the board level.</div>`;
   }
 
   const metrics = [

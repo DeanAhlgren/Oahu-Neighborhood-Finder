@@ -1,12 +1,21 @@
 require('dotenv').config();
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('.'));
 
-app.post('/api/chat', async (req, res) => {
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many requests — try again in a minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/chat', chatLimiter, async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set in .env' });
@@ -127,10 +136,19 @@ app.post('/api/chat', async (req, res) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(decoder.decode(value, { stream: true }));
+    const streamTimeout = setTimeout(() => {
+      reader.cancel();
+      if (!res.writableEnded) res.end();
+    }, 30000);
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(decoder.decode(value, { stream: true }));
+      }
+    } finally {
+      clearTimeout(streamTimeout);
     }
 
     res.end();
